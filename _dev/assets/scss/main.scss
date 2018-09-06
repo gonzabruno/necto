@@ -1,0 +1,202 @@
+// @import 'base/base.scss';
+
+$black: #2c333c;
+$gray: #505050;
+$lightgray: #d2d1e0;
+$blue: #4a90e2;
+$pink: #e11c4a;
+
+html {
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+*,
+*:before,
+*:after {
+    box-sizing: inherit;
+}
+
+body {
+    font-family: 'Lato', sans-serif;
+    line-height: 1.5;
+}
+
+.wrapper {
+    min-height: 100vh;
+    display: flex;
+    .col-left {
+        flex: 0 1 35%;
+        background: url('../img/bg.jpg') center / cover;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        padding: 250px 20px 100px;
+        color: #fff;
+        font-size: 1.5rem;
+        p {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            img {
+                margin: 0 10px;
+            }
+        }
+    }
+    .col-right {
+        flex: 0 1 65%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: $gray;
+        .login {
+            min-width: 415px;
+            header {
+                padding-bottom: 30px;
+                h1 {
+                    font-size: 2.25rem;
+                    color: $black;
+                    margin: 0;
+                }
+                p {
+                    font-size: 1.125rem;
+                    margin: 0 0 15px;
+                }
+            }
+            #okta-sign-in {
+                margin: 0;
+                background: none;
+                color: $gray;
+                border: none;
+                font-size: 0.875rem;
+                font-family: inherit;
+                line-height: inherit;
+                width: 415px;
+                .okta-sign-in-header {
+                    display: none;
+                }
+                .auth-content {
+                    padding: 0;
+                }
+                .okta-form-title {
+                    display: none;
+                }
+                .o-form-fieldset {
+                    margin-bottom: 23px;
+                    .field-label {
+                        font-size: 0.875rem;
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 5px;
+                        a {
+                            color: $blue;
+                            text-decoration: none;
+                            transition: all 0.2s;
+                            &:visited,
+                            &:hover {
+                                color: darken($blue, 10%);
+                            }
+                        }
+                    }
+                }
+                .o-form {
+                    .o-form-label,
+                    input,
+                    label,
+                    textarea {
+                        font-size: 0.875rem;
+                        &::placeholder {
+                            color: transparent;
+                        }
+                    }
+                    .input-fix,
+                    .textarea-fix {
+                        height: 50px;
+                        border-color: $lightgray;
+                    }
+                    .o-form-input {
+                        .input-icon {
+                            display: none;
+                            & + input,
+                            & + input + input {
+                                padding-left: 10px;
+                                font-size: 0.875rem;
+                            }
+                        }
+                    }
+                    .o-form-button-bar {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        .o-form-fieldset {
+                            margin: 0;
+                            .custom-checkbox {
+                                display: flex;
+                                align-items: center;
+                                input {
+                                    padding: 0;
+                                    height: initial;
+                                    width: initial;
+                                    margin-bottom: 0;
+                                    display: none;
+                                    cursor: pointer;
+                                    &:checked + label::after {
+                                        content: '';
+                                        display: block;
+                                        position: absolute;
+                                        top: 2px;
+                                        left: 5px;
+                                        width: 8px;
+                                        height: 14px;
+                                        border: solid $pink;
+                                        border-width: 0 3px 3px 0;
+                                        transform: rotate(45deg);
+                                    }
+                                }
+
+                                label {
+                                    position: relative;
+                                    cursor: pointer;
+                                    background: none;
+                                    padding: 0;
+                                    &::before {
+                                        content: '';
+                                        -webkit-appearance: none;
+                                        background-color: transparent;
+                                        border: 1px solid $lightgray;
+                                        border-radius: 4px;
+                                        padding: 8px;
+                                        display: inline-block;
+                                        position: relative;
+                                        vertical-align: middle;
+                                        cursor: pointer;
+                                        margin-right: 10px;
+                                    }
+                                    &::after {
+                                        transition: all 0.1s;
+                                        content: '';
+                                    }
+                                }
+                            }
+                        }
+                        .button {
+                            background: $pink;
+                            width: auto;
+                            border-radius: 100px;
+                            height: 50px;
+                            line-height: 50px;
+                            padding: 0 70px;
+                            border: none;
+                            color: #fff;
+                            transition: 0.2s;
+                            &:hover {
+                                background: darken($pink, 10%);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
