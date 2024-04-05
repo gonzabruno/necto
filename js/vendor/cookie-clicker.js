@@ -11,7 +11,7 @@ var gCookie = {
 
 (function ($) {
     const updateEvent = new Event("infoUpdated");
-    let throttleTimeout;
+    let debounceTimeout;
     let plotsUnlocked = 0;
     let plotsOccupied = 0;
     let gardenCostOverridden = false;
@@ -557,8 +557,8 @@ var gCookie = {
     });
 
     document.addEventListener("infoUpdated", () => {
-        clearTimeout(throttleTimeout);
-        throttleTimeout = setTimeout(() => {
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
             updateUI();
             saveCurrentState();
         }, 0);
