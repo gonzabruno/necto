@@ -7,14 +7,14 @@ var gCookie = {
     },
     intervalFarmPeriod: 45000,
     intervalAutoBuyPeriod: 900000,
-    plotsUnlocked: 0,
-    plotsOccupied: 0,
-    gardenCostOverridden: false,
 };
 
 (function ($) {
     const updateEvent = new Event("infoUpdated");
-    var throttleTimeout;
+    let throttleTimeout;
+    let plotsUnlocked = 0;
+    let plotsOccupied = 0;
+    let gardenCostOverridden = false;
 
     const dispatchUpdate = () => {
         document.dispatchEvent(updateEvent);
@@ -45,7 +45,7 @@ var gCookie = {
                     (Game.HasAchiev("Seedless to nay") ? 0.95 : 1)
                 );
             };
-            $.gardenCostOverridden = true;
+            gardenCostOverridden = true;
             dispatchUpdate();
         }
     };
@@ -118,12 +118,12 @@ var gCookie = {
             return;
         }
 
-        if (!$.gardenCostOverridden) {
+        if (!gardenCostOverridden) {
             overrideGardenGetCost();
         }
 
-        $.plotsUnlocked = 0;
-        $.plotsOccupied = 0;
+        plotsUnlocked = 0;
+        plotsOccupied = 0;
 
         var nextTick =
             ((((M.nextStep - Date.now()) / 1000) * 30 + 30) / Game.fps) * 1000;
@@ -131,11 +131,11 @@ var gCookie = {
         for (var y = 0; y < 6; y++) {
             for (var x = 0; x < 6; x++) {
                 if (M.isTileUnlocked(x, y)) {
-                    $.plotsUnlocked += 1;
+                    plotsUnlocked += 1;
                     var tile = M.plot[y][x];
                     var me = M.plantsById[tile[0] - 1];
                     if (tile[0] > 0) {
-                        $.plotsOccupied += 1;
+                        plotsOccupied += 1;
                         // age
                         var age = tile[1];
                         var maxTick = Math.ceil(
@@ -245,7 +245,7 @@ var gCookie = {
     const getGardenCost = () => {
         // how many plants would need reseeding. At most, aprox. 2/3 of the garden.
         const plantsToReseed = Math.floor(
-            Math.min($.plotsOccupied, $.plotsUnlocked * 0.55)
+            Math.min(plotsOccupied, plotsUnlocked * 0.55)
         );
         // the cost of planting new golden clovers.
         const bankToReseedPlants =
@@ -491,7 +491,7 @@ var gCookie = {
         <li><button data-minutes="-1" ${addModifiers(-1)}>Run Now!</button></li>
       </ul>
     </li>
-    <li>${formatBool($.gardenCostOverridden)} garden cost</li>
+    <li>${formatBool(gardenCostOverridden)} garden cost</li>
     </ul>`;
 
         const list = create(htmlStr);
