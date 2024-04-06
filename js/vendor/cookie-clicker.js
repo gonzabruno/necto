@@ -5,8 +5,6 @@ var gCookie = {
         key2: false,
         key5: false,
     },
-    intervalFarmPeriod: 45000,
-    intervalAutoBuyPeriod: 900000,
 };
 
 (function ($) {
@@ -15,6 +13,8 @@ var gCookie = {
     let plotsUnlocked = 0;
     let plotsOccupied = 0;
     let gardenCostOverridden = false;
+    let intervalFarmPeriod = 45000;
+    let intervalAutoBuyPeriod = 900000;
 
     const dispatchUpdate = () => {
         document.dispatchEvent(updateEvent);
@@ -127,7 +127,7 @@ var gCookie = {
 
         var nextTick =
             ((((M.nextStep - Date.now()) / 1000) * 30 + 30) / Game.fps) * 1000;
-        var shouldHarvest = nextTick < $.intervalFarmPeriod * 1.5;
+        var shouldHarvest = nextTick < intervalFarmPeriod * 1.5;
         for (var y = 0; y < 6; y++) {
             for (var x = 0; x < 6; x++) {
                 if (M.isTileUnlocked(x, y)) {
@@ -291,7 +291,7 @@ var gCookie = {
 
         $.timeoutBuyBuildings = setTimeout(
             buyBuildingsPeriodically,
-            toBuy ? 500 : $.intervalAutoBuyPeriod
+            toBuy ? 500 : intervalAutoBuyPeriod
         );
     };
 
@@ -299,8 +299,8 @@ var gCookie = {
         const newValue = minutes * 60000;
         if (minutes === -1) {
             buyBuildingsPeriodically();
-        } else if (newValue !== $.intervalAutoBuyPeriod) {
-            $.intervalAutoBuyPeriod = newValue;
+        } else if (newValue !== intervalAutoBuyPeriod) {
+            intervalAutoBuyPeriod = newValue;
             dispatchUpdate();
             console.log(
                 `⏲️ autobuy timer changed to: ${Game.sayTime(
@@ -323,7 +323,7 @@ var gCookie = {
             $.autoPopTwelveth = setInterval(popWrinklers, 90000);
             $.intervalFarm = setInterval(
                 () => autoHarvestAndPlant(Game.Objects["Farm"].minigame),
-                $.intervalFarmPeriod
+                intervalFarmPeriod
             );
             $.intervalFortune = setInterval(clickFortuneNews, 1500);
             $.intervalMagic = setInterval(
@@ -473,7 +473,7 @@ var gCookie = {
         let classes = `gbutton`;
         let state = ``;
         classes +=
-            Number(value) * 60000 === $.intervalAutoBuyPeriod ? ` current` : ``;
+            Number(value) * 60000 === intervalAutoBuyPeriod ? ` current` : ``;
         if (!$.active.key5) {
             classes += ` disabled`;
             state += ` disabled`;
