@@ -506,7 +506,7 @@ var gCookie = {
     <li>${formatBool(gardenCostOverridden)} garden cost</li>
     </ul>`;
 
-        const wrapper = create(wrapper);
+        const wrapper = create(wrapperStr);
         const existingWrapper = document.querySelector("#gcookie-wrapper");
         if (!existingWrapper) {
             document.querySelector("#sectionLeft").prepend(list);
