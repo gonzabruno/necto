@@ -481,8 +481,17 @@ var gCookie = {
         return `class="${classes}"${state}`;
     };
 
+    const addTooltip = () => {
+        Game.attachTooltip(
+            l("gcookie-wrapper"),
+            '<div style="padding:8px;width:250px;text-align:center;">Back to our homepage!</div>',
+            "bottom"
+        );
+    };
+
     const updateUI = () => {
-        const htmlStr = `<ul id="gcookie">
+        const wrapperStr = `<div id="gcookie-wrapper"><ul id="gcookie"></ul></div>`;
+        const listStr = `<ul id="gcookie">
     <li>${formatBool($.active.key0)} script 0</li>
     <li>${formatBool($.active.key1)} script 1</li>
     <li>${formatBool($.active.key5)} script 5
@@ -497,14 +506,16 @@ var gCookie = {
     <li>${formatBool(gardenCostOverridden)} garden cost</li>
     </ul>`;
 
-        const list = create(htmlStr);
-        const oldList = document.querySelector("#gcookie");
-
-        if (oldList) {
-            oldList.replaceWith(list);
-        } else {
+        const wrapper = create(wrapper);
+        const existingWrapper = document.querySelector("#gcookie-wrapper");
+        if (!existingWrapper) {
             document.querySelector("#sectionLeft").prepend(list);
+            addTooltip();
         }
+
+        const list = create(listStr);
+        const oldList = document.querySelector("#gcookie");
+        oldList.replaceWith(list);
     };
 
     /****************************************************************************************/
