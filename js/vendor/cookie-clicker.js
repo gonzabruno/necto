@@ -4,6 +4,7 @@ var gCookie = {
         key1: false,
         key2: false,
         key5: false,
+        key9: false,
     },
 };
 
@@ -31,6 +32,7 @@ var gCookie = {
             key0: !$.active.key0,
             key1: !$.active.key1,
             key5: !$.active.key5,
+            key9: !$.active.key9,
         };
         localStorage.setItem("gcookie-data", JSON.stringify(toSave));
     };
@@ -318,7 +320,6 @@ var gCookie = {
 
         if ($.active.key0) {
             console.log(`script 0 started`);
-            $.intervalClicker = setInterval(Game.ClickCookie, 2);
             $.intervalGolden = setInterval(clickGoldenCookie, 500);
             $.autoPopTwelveth = setInterval(popWrinklers, 90000);
             $.intervalFarm = setInterval(
@@ -334,7 +335,6 @@ var gCookie = {
             // fire harvest function immediately because of the long interval wait.
             autoHarvestAndPlant(Game.Objects["Farm"].minigame);
         } else {
-            clearInterval($.intervalClicker);
             clearInterval($.intervalGolden);
             clearInterval($.intervalFortune);
             clearInterval($.intervalFarm);
@@ -379,6 +379,19 @@ var gCookie = {
         } else {
             clearTimeout($.timeoutBuyBuildings);
             console.log(`script 5 stopped`);
+        }
+    };
+
+    const toggleActive9Loops = () => {
+        $.active.key9 = !$.active.key9;
+        dispatchUpdate();
+
+        if ($.active.key9) {
+            console.log(`script 9 started`);
+            $.intervalClicker = setInterval(Game.ClickCookie, 2);
+        } else {
+            clearInterval($.intervalClicker);
+            console.log(`script 9 stopped`);
         }
     };
 
@@ -484,7 +497,52 @@ var gCookie = {
     const addTooltip = () => {
         Game.attachTooltip(
             l("gcookie-wrapper"),
-            '<div style="padding:8px;width:250px;text-align:center;">Back to our homepage!</div>',
+            `<div style="padding:8px;width:280px;">
+                <div><b>Key 0:</b>
+                    <ul style="padding: 3px;">
+                        <li>Auto: Click Golden cookies (and reindeers)</li>
+                        <li>Auto: Click Fortune news</li>
+                        <li>Auto: Pop last wrinkler</li>
+                        <li>Auto: Cast "Force the Hand of Fate"</li>
+                        <li>Auto: Harvest Mature plants and reseed them</li>
+                    </ul>
+                </div>
+                <div><b>Key 1:</b>
+                    <ul style="padding: 3px;">
+                        <li>Auto: Buy upgrades periodically</li>
+                    </ul>
+                </div>
+                <div><b>Key 2:</b>
+                    <ul style="padding: 3px;">
+                        <li>Auto: Pet the Dragon</li>
+                    </ul>
+                </div>
+                <div><b>Key 3:</b>
+                    <ul style="padding: 3px;">
+                        <li>Pop all wrinklers</li>
+                    </ul>
+                </div>
+                <div><b>Key 5:</b>
+                    <ul style="padding: 3px;">
+                        <li>Auto: Buy buildings periodically</li>
+                    </ul>
+                </div>
+                <div><b>Key 6:</b>
+                    <ul style="padding: 3px;">
+                        <li>Buy building(s) with best benefit-cost ratio</li>
+                    </ul>
+                </div>
+                <div><b>Key 7:</b>
+                    <ul style="padding: 3px;">
+                        <li>Show/log important information</li>
+                    </ul>
+                </div>
+                <div><b>Key 9:</b>
+                    <ul style="padding: 3px;">
+                        <li>Auto: Click Big Cookie</li>
+                    </ul>
+                </div>
+            </div>`,
             "bottom"
         );
     };
@@ -560,6 +618,10 @@ var gCookie = {
             if (keyName === "7") {
                 logImportantInfo();
             }
+
+            if (keyName === "9") {
+                toggleActive9Loops();
+            }
         },
         false
     );
@@ -586,4 +648,5 @@ var gCookie = {
     toggleActive0Loops();
     toggleActive1Loops();
     toggleActive5Loops();
+    toggleActive9Loops();
 })(gCookie);
