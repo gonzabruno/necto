@@ -550,9 +550,9 @@ var gCookie = {
     const updateUI = () => {
         const wrapperStr = `<div id="gcookie-wrapper"><ul id="gcookie"></ul></div>`;
         const listStr = `<ul id="gcookie">
-    <li>${formatBool($.active.key0)} script 0</li>
-    <li>${formatBool($.active.key1)} script 1</li>
-    <li>${formatBool($.active.key5)} script 5
+    <li>${formatBool($.active.key0)} key 0</li>
+    <li>${formatBool($.active.key1)} key 1</li>
+    <li>${formatBool($.active.key5)} key 5
       <ul>
         <li><button data-minutes="1" ${addModifiers(1)}>1</button></li>
         <li><button data-minutes="5" ${addModifiers(5)}>5</button></li>
@@ -561,6 +561,7 @@ var gCookie = {
         <li><button data-minutes="-1" ${addModifiers(-1)}>Run Now!</button></li>
       </ul>
     </li>
+    <li>${formatBool($.active.key9)} key 9</li>
     <li>${formatBool(gardenCostOverridden)} garden cost</li>
     </ul>`;
 
