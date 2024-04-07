@@ -509,7 +509,7 @@ var gCookie = {
         const wrapper = create(wrapperStr);
         const existingWrapper = document.querySelector("#gcookie-wrapper");
         if (!existingWrapper) {
-            document.querySelector("#sectionLeft").prepend(list);
+            document.querySelector("#sectionLeft").prepend(wrapper);
             addTooltip();
         }
 
