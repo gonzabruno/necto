@@ -450,15 +450,16 @@ var gCookie = {
 
     const insertStyles = () => {
         const style = document.createElement("style");
-        style.textContent = `#gcookie {
-      position: absolute;
-      z-index: 9999;
-      top: 5px;
-      left: 5px;
-      line-height: 1.5;
-      background: rgba(0,0,0,0.4);
-      border-radius: 3px;
-      padding: 4px;
+        style.textContent = `
+    #gcookie-wrapper {
+        position: absolute;
+        z-index: 9999;
+        top: 68%;
+        left: 5px;
+        line-height: 1.5;
+        background: rgba(0,0,0,0.4);
+        border-radius: 3px;
+        padding: 4px;
     }
     #gcookie > li {
       display: flex;
@@ -543,7 +544,7 @@ var gCookie = {
                     </ul>
                 </div>
             </div>`,
-            "bottom"
+            "top"
         );
     };
 
