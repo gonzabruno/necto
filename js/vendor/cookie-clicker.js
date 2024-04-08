@@ -650,4 +650,7 @@ var gCookie = {
     toggleActive1Loops();
     toggleActive5Loops();
     toggleActive9Loops();
+
+    // award shadow achievement for using addons.
+    Game.Win("Third-party");
 })(gCookie);
