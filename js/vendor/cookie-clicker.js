@@ -454,20 +454,29 @@ var gCookie = {
     #gcookie-wrapper {
         position: absolute;
         z-index: 9999;
-        top: 68%;
+        top: 5px;
         left: 5px;
         line-height: 1.5;
         background: rgba(0,0,0,0.4);
         border-radius: 3px;
         padding: 4px;
     }
+    #gcookie {
+        display: flex;
+        gap: 10px;
+    }
     #gcookie > li {
       display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
     }
     #gcookie ul {
       display:flex;
-      gap: 10px;
-      padding-left: 10px;
+      flex-wrap: wrap;
+      gap: 2px;
+      max-width: 100px;
+      justify-content: space-evenly;
     }
     .gbutton {
       border-radius: 3px;
