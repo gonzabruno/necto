@@ -461,8 +461,7 @@ var gCookie = {
   #gcookie ul {
     display:flex;
     flex-wrap: wrap;
-    gap: 2px;
-    max-width: 100px;
+    gap: 5px;
     justify-content: space-between;
   }
   #gcookie li li:last-child {
@@ -471,6 +470,7 @@ var gCookie = {
   }
   #gcookie li li:last-child .gbutton {
     flex: 1;
+    white-space: nowrap;
   }
   .gbutton {
     border-radius: 3px;
