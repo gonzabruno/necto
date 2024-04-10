@@ -463,7 +463,7 @@ var gCookie = {
     flex-wrap: wrap;
     gap: 2px;
     max-width: 100px;
-    justify-content: space-evenly;
+    justify-content: space-between;
   }
   #gcookie li li:last-child {
     flex: 1;
