@@ -228,8 +228,9 @@ var gCookie = {
           if (updatedBuffsCount > buffsAppliedCount) {
             console.log(`🪄 spell triggered another buff.`);
             Game.Notify(
-              `🪄 spell triggered another buff at ${new Date().toLocaleTimeString()}`,
-              ``
+              `Spell triggered another buff at ${new Date().toLocaleTimeString()}`,
+              ``,
+              [22, 11]
             );
           } else {
             console.log(`🪄 spell backfired or did not do anything important.`);
