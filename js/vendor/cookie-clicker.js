@@ -445,19 +445,27 @@ var gCookie = {
     top: 5px;
     left: 5px;
     line-height: 1.5;
-    background: rgba(0,0,0,0.4);
     border-radius: 3px;
-    padding: 4px;
   }
   #gcookie {
     display: flex;
-    gap: 10px;
+    gap: 2px;
   }
   #gcookie > li {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
+    padding: 5px;
+    background: rgba(0,0,0,0.4);
+  }
+  #gcookie > li:first-child {
+    border-radius: 10px 0 0 10px;
+    padding-left: 7px;
+  }
+  #gcookie > li:last-child {
+    border-radius: 0 10px 10px 0;
+    padding-right: 7px;
   }
   #gcookie ul {
     display:flex;
