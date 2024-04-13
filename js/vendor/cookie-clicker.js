@@ -458,14 +458,13 @@ var gCookie = {
     gap: 5px;
     padding: 5px;
     background: rgba(0,0,0,0.4);
+    justify-content: center;
   }
   #gcookie > li:first-child {
     border-radius: 10px 0 0 10px;
-    padding-left: 7px;
   }
   #gcookie > li:last-child {
     border-radius: 0 10px 10px 0;
-    padding-right: 7px;
   }
   #gcookie ul {
     display:flex;
