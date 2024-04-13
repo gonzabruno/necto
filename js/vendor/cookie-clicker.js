@@ -534,6 +534,11 @@ var gCookie = {
       <li>Pop all wrinklers</li>
       </ul>
     </div>
+    <div><b>Key 4:</b>
+      <ul style="padding: 3px;">
+      <li>Buy every upgrade available</li>
+      </ul>
+    </div>
     <div><b>Key 5:</b>
       <ul style="padding: 3px;">
       <li>Auto: Buy buildings periodically</li>
