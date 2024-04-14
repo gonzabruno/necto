@@ -241,9 +241,9 @@ var gCookie = {
   };
 
   const getGardenCost = () => {
-    // how many plants would need reseeding. At most, aprox. 2/3 of the garden.
+    // how many plants would need reseeding. At most, aprox. 1/3 of the garden.
     const plantsToReseed = Math.floor(
-      Math.min(plotsOccupied, plotsUnlocked * 0.55)
+      Math.min(plotsOccupied, plotsUnlocked * 0.33)
     );
     // the cost of planting new golden clovers.
     const bankToReseedPlants =
