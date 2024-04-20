@@ -51,6 +51,88 @@ var gCookie = {
     }
   };
 
+  // change reindeer cookies to notify when they are unlocked.
+  const overrideReindeerPopFunction = () => {
+    if (Game.shimmerTypes["reindeer"]) {
+      Game.shimmerTypes["reindeer"].popFunc = function (me) {
+        //get achievs and stats
+        if (me.spawnLead) {
+          Game.reindeerClicked++;
+        }
+
+        var val = Game.cookiesPs * 60;
+        if (Game.hasBuff("Elder frenzy")) val *= 0.5; //very sorry
+        if (Game.hasBuff("Frenzy")) val *= 0.75; //I sincerely apologize
+        var moni = Math.max(25, val); //1 minute of cookie production, or 25 cookies - whichever is highest
+        if (Game.Has("Ho ho ho-flavored frosting")) moni *= 2;
+        moni *= Game.eff("reindeerGain");
+        Game.Earn(moni);
+        if (Game.hasBuff("Elder frenzy")) Game.Win("Eldeer");
+
+        var cookie = "";
+        var failRate = 0.8;
+        if (Game.HasAchiev("Let it snow")) failRate = 0.6;
+        failRate *= 1 / Game.dropRateMult();
+        if (Game.Has("Starsnow")) failRate *= 0.95;
+        if (Game.hasGod) {
+          var godLvl = Game.hasGod("seasons");
+          if (godLvl == 1) failRate *= 0.9;
+          else if (godLvl == 2) failRate *= 0.95;
+          else if (godLvl == 3) failRate *= 0.97;
+        }
+        if (Math.random() > failRate) {
+          //christmas cookie drops
+          cookie = choose([
+            "Christmas tree biscuits",
+            "Snowflake biscuits",
+            "Snowman biscuits",
+            "Holly biscuits",
+            "Candy cane biscuits",
+            "Bell biscuits",
+            "Present biscuits",
+          ]);
+          if (!Game.HasUnlocked(cookie) && !Game.Has(cookie)) {
+            Game.Unlock(cookie);
+            // gonza override: start
+            Game.Notify(
+              loc("You found a cookie!"),
+              "<b>" + cookie + "</b>",
+              Game.Upgrades[cookie].icon
+            );
+            // gonza override: end
+          } else cookie = "";
+        }
+
+        var popup = "";
+
+        Game.Notify(
+          loc("You found %1!", choose(loc("Reindeer names"))),
+          loc("The reindeer gives you %1.", loc("%1 cookie", LBeautify(moni))) +
+            (cookie == ""
+              ? ""
+              : "<br>" +
+                loc(
+                  "You are also rewarded with %1!",
+                  Game.Upgrades[cookie].dname
+                )),
+          [12, 9],
+          6
+        );
+        popup =
+          '<div style="font-size:80%;">' +
+          loc("+%1!", loc("%1 cookie", LBeautify(moni))) +
+          "</div>";
+
+        if (popup != "") Game.Popup(popup, Game.mouseX, Game.mouseY);
+
+        //sparkle and kill the shimmer
+        Game.SparkleAt(Game.mouseX, Game.mouseY);
+        PlaySound("snd/jingleClick.mp3");
+        me.die();
+      };
+    }
+  };
+
   // auto-click golden and reindeer cookies
   const clickGoldenCookie = function () {
     Game.shimmers.forEach(function (shimmer) {
@@ -663,6 +745,7 @@ var gCookie = {
   Game.storeBulkButton(3);
   loadInitialState();
   insertStyles();
+  overrideReindeerPopFunction();
   toggleActive0Loops();
   toggleActive1Loops();
   toggleActive5Loops();
