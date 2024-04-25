@@ -4,6 +4,7 @@ var gCookie = {
     key1: false,
     key2: false,
     key5: false,
+    key8: false,
     key9: false,
   },
 };
@@ -31,6 +32,7 @@ var gCookie = {
       key0: !$.active.key0,
       key1: !$.active.key1,
       key5: !$.active.key5,
+      key8: !$.active.key8,
       key9: !$.active.key9,
     };
     localStorage.setItem("gcookie-data", JSON.stringify(toSave));
@@ -394,10 +396,6 @@ var gCookie = {
       console.log(`script 0 started`);
       $.intervalGolden = setInterval(clickGoldenCookie, 500);
       $.autoPopTwelveth = setInterval(popWrinklers, 90000);
-      $.intervalFarm = setInterval(
-        () => autoHarvestAndPlant(Game.Objects["Farm"].minigame),
-        intervalFarmPeriod
-      );
       $.intervalFortune = setInterval(clickFortuneNews, 1500);
       $.intervalMagic = setInterval(
         () => castSpell(Game.Objects["Wizard tower"].minigame),
@@ -409,7 +407,6 @@ var gCookie = {
     } else {
       clearInterval($.intervalGolden);
       clearInterval($.intervalFortune);
-      clearInterval($.intervalFarm);
       clearInterval($.intervalMagic);
       console.log(`script 0 stopped`);
     }
@@ -451,6 +448,22 @@ var gCookie = {
     } else {
       clearTimeout($.timeoutBuyBuildings);
       console.log(`script 5 stopped`);
+    }
+  };
+
+  const toggleActive8Loops = () => {
+    $.active.key8 = !$.active.key8;
+    dispatchUpdate();
+
+    if ($.active.key8) {
+      console.log(`script 8 started`);
+      $.intervalFarm = setInterval(
+        () => autoHarvestAndPlant(Game.Objects["Farm"].minigame),
+        intervalFarmPeriod
+      );
+    } else {
+      clearInterval($.intervalFarm);
+      console.log(`script 8 stopped`);
     }
   };
 
@@ -598,7 +611,6 @@ var gCookie = {
       <li>Auto: Click Fortune news</li>
       <li>Auto: Pop last wrinkler</li>
       <li>Auto: Cast "Force the Hand of Fate"</li>
-      <li>Auto: Harvest Mature plants and reseed them</li>
       </ul>
     </div>
     <div><b>Key 1:</b>
@@ -636,6 +648,11 @@ var gCookie = {
       <li>Show/log important information</li>
       </ul>
     </div>
+    <div><b>Key 8:</b>
+      <ul style="padding: 3px;">
+      <li>Auto: Harvest Mature plants and reseed them</li>
+      </ul>
+    </div>
     <div><b>Key 9:</b>
       <ul style="padding: 3px;">
       <li>Auto: Click Big Cookie</li>
@@ -660,6 +677,7 @@ var gCookie = {
   <li><button data-minutes="-1" ${addModifiers(-1)}>Run Now!</button></li>
   </ul>
   </li>
+  <li>${formatBool($.active.key8)} key 8</li>
   <li>${formatBool($.active.key9)} key 9</li>
   <li>${formatBool(gardenCostOverridden)} garden cost</li>
   </ul>`;
@@ -719,6 +737,10 @@ var gCookie = {
         logImportantInfo();
       }
 
+      if (keyName === "8") {
+        toggleActive8Loops();
+      }
+
       if (keyName === "9") {
         toggleActive9Loops();
       }
@@ -749,6 +771,7 @@ var gCookie = {
   toggleActive0Loops();
   toggleActive1Loops();
   toggleActive5Loops();
+  toggleActive8Loops();
   toggleActive9Loops();
 
   // award shadow achievement for using addons.
