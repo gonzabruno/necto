@@ -197,7 +197,7 @@ var gCookie = {
   };
 
   // harvest mature plants and re-seed them
-  const autoHarvestAndPlant = function (M) {
+  const autoHarvestAndPlant = function (M, onlyHarvestMature = false) {
     if (!M) {
       return;
     }
@@ -226,7 +226,7 @@ var gCookie = {
               (me.ageTick + me.ageTickR) * M.plotBoost[y][x][0]
             );
             var limit = Math.min(97, 100 - maxTick);
-            if (me.weed || me.fungus) {
+            if (!onlyHarvestMature && (me.weed || me.fungus)) {
               // kill weeds
               M.harvest(x, y);
               console.log(`💀 killed: ${me.name} at x: ${x}, y: ${y}.`);
@@ -236,9 +236,11 @@ var gCookie = {
               console.log(
                 `✅ harvested: ${me.name} at x: ${x}, y: ${y}. Age: ${age}. Mature: ${me.mature}. Tick: ${me.ageTick}. Limit: ${limit}`
               );
-              // replant them
-              M.useTool(me.id, x, y);
-              console.log(`🌱 planted: ${me.name} at x: ${x}, y: ${y}.`);
+              if (!onlyHarvestMature) {
+                // replant them
+                M.useTool(me.id, x, y);
+                console.log(`🌱 planted: ${me.name} at x: ${x}, y: ${y}.`);
+              }
             }
           }
         }
@@ -401,9 +403,6 @@ var gCookie = {
         () => castSpell(Game.Objects["Wizard tower"].minigame),
         2000
       );
-
-      // fire harvest function immediately because of the long interval wait.
-      autoHarvestAndPlant(Game.Objects["Farm"].minigame);
     } else {
       clearInterval($.intervalGolden);
       clearInterval($.intervalFortune);
@@ -455,16 +454,14 @@ var gCookie = {
     $.active.key8 = !$.active.key8;
     dispatchUpdate();
 
-    if ($.active.key8) {
-      console.log(`script 8 started`);
-      $.intervalFarm = setInterval(
-        () => autoHarvestAndPlant(Game.Objects["Farm"].minigame),
-        intervalFarmPeriod
-      );
-    } else {
-      clearInterval($.intervalFarm);
-      console.log(`script 8 stopped`);
-    }
+    clearInterval($.intervalFarm);
+    $.intervalFarm = setInterval(
+      () => autoHarvestAndPlant(Game.Objects["Farm"].minigame, !$.active.key8),
+      intervalFarmPeriod
+    );
+    // fire harvest function immediately because of the long interval wait.
+    autoHarvestAndPlant(Game.Objects["Farm"].minigame, !$.active.key8);
+    console.log($.active.key8 ? `script 8 started` : `script 8 stopped`);
   };
 
   const toggleActive9Loops = () => {
