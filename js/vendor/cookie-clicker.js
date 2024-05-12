@@ -483,7 +483,9 @@ var gCookie = {
     const rawClickCps = Beautify(Game.mouseCps() / 7);
     const oneLiner = `${Beautify(Game.cookiesPsRaw)} - ${Beautify(
       Game.mouseCps() / 7
-    )} (${Beautify(Game.cookiesPs)} - ${Beautify(Game.mouseCps())})`;
+    )} (${Beautify(Game.cookiesPs)} - ${Beautify(
+      Game.mouseCps()
+    )}) - ${Beautify(Game.BuildingsOwned)} buildings.`;
     const buildings = (html) =>
       Object.entries(Game.cookiesPsByType)
         .filter(([key, value]) => value != 0)
