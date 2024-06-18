@@ -397,11 +397,14 @@ var gCookie = {
         console.log(
           `setting timeout for ${Game.sayTime(Game.pledgeT, -1)} in the future.`
         );
-        Game.Upgrades["Elder Pledge"].click();
         $.timeoutPledge = setTimeout(() => {
           console.log(`clicking "Elder Pledge"`);
           Game.Upgrades["Elder Pledge"].click();
           $.timeoutPledge = null;
+          // fallback, just in case something goes wrong.
+          setTimeout(() => {
+            Game.Upgrades["Elder Pledge"].click();
+          }, 5000);
         }, timeToNextClick * 1000);
       }
     }
