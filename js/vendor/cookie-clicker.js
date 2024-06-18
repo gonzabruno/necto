@@ -393,10 +393,11 @@ var gCookie = {
   const reenablePledge = function () {
     if (Game.pledgeT && Game.pledges) {
       if (!$.timeoutPledge) {
-        const timeToNextClick = Math.ceil(1 + Game.pledgeT / Game.fps);
+        const timeToNextClick = Math.ceil(Game.pledgeT / Game.fps) + 1;
         console.log(
           `setting timeout for ${Game.sayTime(Game.pledgeT, -1)} in the future.`
         );
+        Game.Upgrades["Elder Pledge"].click();
         $.timeoutPledge = setTimeout(() => {
           console.log(`clicking "Elder Pledge"`);
           Game.Upgrades["Elder Pledge"].click();
