@@ -410,6 +410,13 @@ var gCookie = {
     }
   };
 
+  const harvestRipeLump = function () {
+    const shouldHarvest = Date.now() - Game.lumpT > Game.lumpRipeAge;
+    if (shouldHarvest) {
+      Game.clickLump();
+    }
+  };
+
   const toggleActive0Loops = () => {
     $.active.key0 = !$.active.key0;
     dispatchUpdate();
@@ -423,6 +430,7 @@ var gCookie = {
         () => castSpell(Game.Objects["Wizard tower"].minigame),
         2000
       );
+      $.intervalLump = setInterval(harvestRipeLump, 120000);
       $.intervalPledge = setInterval(reenablePledge, 600000);
       // fire pledge function immediately because of the long interval wait.
       reenablePledge();
@@ -430,6 +438,7 @@ var gCookie = {
       clearInterval($.intervalGolden);
       clearInterval($.intervalFortune);
       clearInterval($.intervalMagic);
+      clearInterval($.intervalLump);
       clearInterval($.intervalPledge);
       console.log(`script 0 stopped`);
     }
@@ -634,6 +643,7 @@ var gCookie = {
       <li>Auto: Click Fortune news</li>
       <li>Auto: Pop last wrinkler</li>
       <li>Auto: Cast "Force the Hand of Fate"</li>
+      <li>Auto: Click Ripe sugar Lumps</li>
       <li>Auto: Reenable "Elder Pledge"</li>
       </ul>
     </div>
