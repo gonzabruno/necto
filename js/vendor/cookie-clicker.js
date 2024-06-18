@@ -390,6 +390,22 @@ var gCookie = {
     }
   };
 
+  const reenablePledge = function () {
+    if (Game.pledgeT && Game.pledges) {
+      if (!$.timeoutPledge) {
+        const timeToNextClick = Math.ceil(1 + Game.pledgeT / Game.fps);
+        console.log(
+          `setting timeout for ${Game.sayTime(Game.pledgeT, -1)} in the future.`
+        );
+        $.timeoutPledge = setTimeout(() => {
+          console.log(`clicking "Elder Pledge"`);
+          Game.Upgrades["Elder Pledge"].click();
+          $.timeoutPledge = null;
+        }, timeToNextClick * 1000);
+      }
+    }
+  };
+
   const toggleActive0Loops = () => {
     $.active.key0 = !$.active.key0;
     dispatchUpdate();
@@ -403,10 +419,14 @@ var gCookie = {
         () => castSpell(Game.Objects["Wizard tower"].minigame),
         2000
       );
+      $.intervalPledge = setInterval(reenablePledge, 120000);
+      // fire pledge function immediately because of the long interval wait.
+      reenablePledge();
     } else {
       clearInterval($.intervalGolden);
       clearInterval($.intervalFortune);
       clearInterval($.intervalMagic);
+      clearInterval($.intervalPledge);
       console.log(`script 0 stopped`);
     }
   };
@@ -610,6 +630,7 @@ var gCookie = {
       <li>Auto: Click Fortune news</li>
       <li>Auto: Pop last wrinkler</li>
       <li>Auto: Cast "Force the Hand of Fate"</li>
+      <li>Auto: Reenable "Elder Pledge" once triggered for the first time</li>
       </ul>
     </div>
     <div><b>Key 1:</b>
