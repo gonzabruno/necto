@@ -414,6 +414,7 @@ var gCookie = {
     const shouldHarvest = Date.now() - Game.lumpT > Game.lumpRipeAge;
     if (shouldHarvest) {
       Game.clickLump();
+      console.log(`Clicked sugar lump.`);
     }
   };
 
