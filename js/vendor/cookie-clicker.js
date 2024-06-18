@@ -419,7 +419,7 @@ var gCookie = {
         () => castSpell(Game.Objects["Wizard tower"].minigame),
         2000
       );
-      $.intervalPledge = setInterval(reenablePledge, 120000);
+      $.intervalPledge = setInterval(reenablePledge, 600000);
       // fire pledge function immediately because of the long interval wait.
       reenablePledge();
     } else {
@@ -630,7 +630,7 @@ var gCookie = {
       <li>Auto: Click Fortune news</li>
       <li>Auto: Pop last wrinkler</li>
       <li>Auto: Cast "Force the Hand of Fate"</li>
-      <li>Auto: Reenable "Elder Pledge" once triggered for the first time</li>
+      <li>Auto: Reenable "Elder Pledge"</li>
       </ul>
     </div>
     <div><b>Key 1:</b>
