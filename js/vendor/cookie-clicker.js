@@ -410,6 +410,18 @@ var gCookie = {
     }
   };
 
+  const clearReenablePledge = function () {
+    clearInterval($.intervalPledge);
+    clearTimeout($.timeoutPledge);
+    delete $.timeoutPledge;
+  };
+
+  const refreshFools = function () {
+    if (Game.season !== "fools") {
+      Game.seasons["fools"].triggerUpgrade.click();
+    }
+  };
+
   const harvestRipeLump = function () {
     const shouldHarvest = Date.now() - Game.lumpT > Game.lumpRipeAge;
     if (shouldHarvest) {
@@ -440,7 +452,7 @@ var gCookie = {
       clearInterval($.intervalFortune);
       clearInterval($.intervalMagic);
       clearInterval($.intervalLump);
-      clearInterval($.intervalPledge);
+      clearReenablePledge();
       console.log(`script 0 stopped`);
     }
   };
@@ -477,9 +489,11 @@ var gCookie = {
 
     if ($.active.key5) {
       console.log(`script 5 started`);
-      buyBuildingsPeriodically(true);
+      // buyBuildingsPeriodically(true);
+      $.intervalRefreshFools = setInterval(refreshFools, 90000);
     } else {
-      clearTimeout($.timeoutBuyBuildings);
+      // clearTimeout($.timeoutBuyBuildings);
+      clearInterval($.intervalRefreshFools);
       console.log(`script 5 stopped`);
     }
   };
@@ -670,7 +684,8 @@ var gCookie = {
     </div>
     <div><b>Key 5:</b>
       <ul style="padding: 3px;">
-      <li>Auto: Buy buildings periodically</li>
+      <!--<li>Auto: Buy buildings periodically</li>-->
+      <li>Auto: Refresh Fools season</li>
       </ul>
     </div>
     <div><b>Key 6:</b>
@@ -704,13 +719,13 @@ var gCookie = {
   <li>${formatBool($.active.key0)} 0</li>
   <li>${formatBool($.active.key1)} 1</li>
   <li>${formatBool($.active.key5)} 5
-    <ul>
+    <!--<ul>
       <li><button data-minutes="1" ${addModifiers(1)}>1</button></li>
       <li><button data-minutes="5" ${addModifiers(5)}>5</button></li>
       <li><button data-minutes="10" ${addModifiers(10)}>10</button></li>
       <li><button data-minutes="15" ${addModifiers(15)}>15</button></li>
       <li><button data-minutes="-1" ${addModifiers(-1)}>Run Now!</button></li>
-    </ul>
+    </ul>-->
   </li>
   <li>${formatBool($.active.key8)} 8</li>
   <li>${formatBool($.active.key9)} 9</li>
