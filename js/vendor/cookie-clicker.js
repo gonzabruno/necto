@@ -402,9 +402,11 @@ var gCookie = {
           Game.Upgrades["Elder Pledge"].click();
           $.timeoutPledge = null;
           // fallback, just in case something goes wrong.
-          setTimeout(() => {
-            Game.Upgrades["Elder Pledge"].click();
-          }, 20000);
+          [1, 2, 3, 4, 5, 6].forEach((i) =>
+            setTimeout(() => {
+              Game.Upgrades["Elder Pledge"].click();
+            }, 10000 * i)
+          );
         }, timeToNextClick * 1000);
       }
     }
@@ -444,15 +446,11 @@ var gCookie = {
         2000
       );
       $.intervalLump = setInterval(harvestRipeLump, 120000);
-      $.intervalPledge = setInterval(reenablePledge, 600000);
-      // fire pledge function immediately because of the long interval wait.
-      reenablePledge();
     } else {
       clearInterval($.intervalGolden);
       clearInterval($.intervalFortune);
       clearInterval($.intervalMagic);
       clearInterval($.intervalLump);
-      clearReenablePledge();
       console.log(`script 0 stopped`);
     }
   };
@@ -489,11 +487,13 @@ var gCookie = {
 
     if ($.active.key5) {
       console.log(`script 5 started`);
-      // buyBuildingsPeriodically(true);
       $.intervalRefreshFools = setInterval(refreshFools, 90000);
+      $.intervalPledge = setInterval(reenablePledge, 600000);
+      // fire pledge function immediately because of the long interval wait.
+      reenablePledge();
     } else {
-      // clearTimeout($.timeoutBuyBuildings);
       clearInterval($.intervalRefreshFools);
+      clearReenablePledge();
       console.log(`script 5 stopped`);
     }
   };
@@ -659,7 +659,6 @@ var gCookie = {
       <li>Auto: Pop last wrinkler</li>
       <li>Auto: Cast "Force the Hand of Fate"</li>
       <li>Auto: Click Ripe sugar Lumps</li>
-      <li>Auto: Reenable "Elder Pledge"</li>
       </ul>
     </div>
     <div><b>Key 1:</b>
@@ -684,8 +683,8 @@ var gCookie = {
     </div>
     <div><b>Key 5:</b>
       <ul style="padding: 3px;">
-      <!--<li>Auto: Buy buildings periodically</li>-->
       <li>Auto: Refresh Fools season</li>
+      <li>Auto: Reenable "Elder Pledge"</li>
       </ul>
     </div>
     <div><b>Key 6:</b>
@@ -718,15 +717,7 @@ var gCookie = {
     const listStr = `<ul id="gcookie">
   <li>${formatBool($.active.key0)} 0</li>
   <li>${formatBool($.active.key1)} 1</li>
-  <li>${formatBool($.active.key5)} 5
-    <!--<ul>
-      <li><button data-minutes="1" ${addModifiers(1)}>1</button></li>
-      <li><button data-minutes="5" ${addModifiers(5)}>5</button></li>
-      <li><button data-minutes="10" ${addModifiers(10)}>10</button></li>
-      <li><button data-minutes="15" ${addModifiers(15)}>15</button></li>
-      <li><button data-minutes="-1" ${addModifiers(-1)}>Run Now!</button></li>
-    </ul>-->
-  </li>
+  <li>${formatBool($.active.key5)} 5</li>
   <li>${formatBool($.active.key8)} 8</li>
   <li>${formatBool($.active.key9)} 9</li>
   <li>${formatBool(gardenCostOverridden)} garden cost</li>
