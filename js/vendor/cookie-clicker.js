@@ -419,7 +419,7 @@ var gCookie = {
   };
 
   const refreshFools = function () {
-    if (Game.season !== "fools") {
+    if (Game.season !== "fools" && Game.season !== "christmas") {
       Game.seasons["fools"].triggerUpgrade.click();
     }
   };
