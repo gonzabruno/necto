@@ -433,7 +433,7 @@ var gCookie = {
   };
 
   const refreshFools = function () {
-    if (Game.season !== "fools" && Game.season !== "christmas") {
+    if (Game.season !== "fools") {
       Game.seasons["fools"].triggerUpgrade.click();
     }
   };
@@ -489,10 +489,8 @@ var gCookie = {
     if ($.active.key2) {
       console.log(`script 2 started`);
       clickDragonAtIntervals();
-      // $.intervalPetDragon = setInterval(Game.ClickSpecialPic, 100);
     } else {
       clearTimeout($.timeoutDragon);
-      //clearInterval($.intervalPetDragon);
       console.log(`script 2 stopped`);
     }
   };
