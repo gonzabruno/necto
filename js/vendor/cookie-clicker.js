@@ -326,6 +326,20 @@ var gCookie = {
     }
   };
 
+  const clickDragonAtIntervals = (counter = 0) => {
+    Game.ClickSpecialPic();
+    const shouldReset = ++counter > 30;
+
+    clearTimeout($.timeoutDragon);
+
+    $.timeoutDragon = setTimeout(
+      () => {
+        clickDragonAtIntervals(shouldReset ? 0 : counter);
+      },
+      shouldReset ? 5000 : 100
+    );
+  };
+
   const getGardenCost = () => {
     // how many plants would need reseeding. At most, aprox. 1/3 of the garden.
     const plantsToReseed = Math.floor(
@@ -474,9 +488,11 @@ var gCookie = {
 
     if ($.active.key2) {
       console.log(`script 2 started`);
-      $.intervalPetDragon = setInterval(Game.ClickSpecialPic, 100);
+      clickDragonAtIntervals();
+      // $.intervalPetDragon = setInterval(Game.ClickSpecialPic, 100);
     } else {
-      clearInterval($.intervalPetDragon);
+      clearTimeout($.timeoutDragon);
+      //clearInterval($.intervalPetDragon);
       console.log(`script 2 stopped`);
     }
   };
