@@ -1009,23 +1009,36 @@ setTimeout(function waitForGame() {
             this.startStocking();
           }, 500);
           return;
-        } else {
-          console.log(
-            "=====$$$=== CookiStocker logic loop initialised at " + new Date()
-          );
-          console.log("=====$$$=== With main options as follows:");
-          console.log(
-            "=====$$$=== Logic loop frequency: " +
-              stockerTimeBeautifier(stockerLoopFrequency)
-          );
-          console.log(
-            "=====$$$=== Report frequency: " +
-              stockerTimeBeautifier(stockerActivityReportFrequency)
-          );
-          console.log("=====$$$=== Cheating: " + stockerForceLoopUpdates);
-          Game.Notify("CookiStocker is ready", stockerGreeting, [1, 33], false);
-          console.log(stockList.check);
         }
+
+        if (Game.cookies < 1e63) {
+          // 1 vigintillion
+          console.log(
+            "=====$$$=== Waiting for more cookies in bank before starting."
+          );
+          setTimeout(() => {
+            this.startStocking();
+          }, 3600 * 1000); // an hour
+          return;
+        }
+
+        // #intro:start
+        console.log(
+          "=====$$$=== CookiStocker logic loop initialised at " + new Date()
+        );
+        console.log("=====$$$=== With main options as follows:");
+        console.log(
+          "=====$$$=== Logic loop frequency: " +
+            stockerTimeBeautifier(stockerLoopFrequency)
+        );
+        console.log(
+          "=====$$$=== Report frequency: " +
+            stockerTimeBeautifier(stockerActivityReportFrequency)
+        );
+        console.log("=====$$$=== Cheating: " + stockerForceLoopUpdates);
+        Game.Notify("CookiStocker is ready", stockerGreeting, [1, 33], false);
+        console.log(stockList.check);
+        // #intro:end
 
         var market = Game.Objects["Bank"].minigame.goodsById; // read market
         console.log("Reading the market:");
@@ -1055,10 +1068,11 @@ setTimeout(function waitForGame() {
               (market[i].stock ? " (own)" : "")
           );
         }
-        if (stockerForceLoopUpdates)
+        if (stockerForceLoopUpdates) {
           Game.Objects["Bank"].minigame.secondsPerTick =
             stockerLoopFrequency / 1000;
-        var stockerLoop = setInterval(function () {
+        }
+        gCookie.stockerLoop = setInterval(function () {
           let doUpdate = false;
 
           // setting stockerForceLoopUpdates to true will make the logic loop force the market to tick every time it triggers,
