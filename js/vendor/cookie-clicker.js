@@ -1011,11 +1011,8 @@ setTimeout(function waitForGame() {
           return;
         }
 
-        if (Game.cookies < 1e63) {
-          // 1 vigintillion
-          console.log(
-            "=====$$$=== Waiting for more cookies in bank before starting."
-          );
+        if (Game.Objects["Bank"].minigame.brokers < 100) {
+          console.log("=====$$$=== Waiting for more brokers before starting.");
           setTimeout(() => {
             this.startStocking();
           }, 3600 * 1000); // an hour
