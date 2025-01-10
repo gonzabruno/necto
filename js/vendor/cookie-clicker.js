@@ -1015,7 +1015,7 @@ setTimeout(function waitForGame() {
           console.log("=====$$$=== Waiting for more brokers before starting.");
           setTimeout(() => {
             this.startStocking();
-          }, 3600 * 1000); // an hour
+          }, 600 * 1000); // ten minutes
           return;
         }
 
