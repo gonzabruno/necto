@@ -333,7 +333,7 @@ var gCookie = {
         console.log(`🪄 spell cast successfully.`);
         setTimeout(() => {
           const updatedBuffs = Object.keys(Game.buffs).filter(
-            (buff) => !ignoredBuffs.includes(buff) || buff === "Click Frenzy"
+            (buff) => !ignoredBuffs.includes(buff) || buff === "Click frenzy"
           );
 
           if (updatedBuffs.length > appliedBuffs.length) {
