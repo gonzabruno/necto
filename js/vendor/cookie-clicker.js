@@ -293,25 +293,50 @@ var gCookie = {
       return;
     }
 
-    const ignoredBuffs = ["Everything must go", "Cookie storm"];
+    const ignoredBuffs = [
+      "Frenzy",
+      "Everything must go",
+      "Cookie storm",
+      "Click frenzy",
+      "Clot",
+      "Loan 1",
+      "Loan 1 (interest)",
+      "Loan 2",
+      "Loan 2 (interest)",
+      "Loan 3",
+      "Loan 3 (interest)",
+    ];
 
-    const buffsAppliedCount = Object.keys(Game.buffs).filter(
+    const appliedBuffs = Object.keys(Game.buffs).filter(
       (buff) => !ignoredBuffs.includes(buff)
-    ).length;
+    );
 
-    if (buffsAppliedCount > 1) {
+    if (appliedBuffs.length > 0) {
       const handOfFateSpell = M.spellsById[1];
       const spellCost = M.getSpellCost(handOfFateSpell);
+      const [buffName] = appliedBuffs;
+      const buff = Game.buffs[buffName];
+      const tooEarly = 3 + buff.maxTime / Game.fps / 2; // a bit before half time
+      const tooLate = 3 + buff.maxTime / Game.fps / 3; // only a third of the time is left
+      const currentTime = buff.time / Game.fps;
+      const shouldPressHandOfGod =
+        currentTime < tooEarly && currentTime > tooLate;
 
-      if (M.magic > spellCost + 10) {
+      if (false && M.magic > spellCost + 5) {
+        console.log(
+          `tooEarly: ${tooEarly} - currentTime: ${currentTime} - tooLate: ${tooLate} - shouldPress? ${shouldPressHandOfGod}`
+        );
+      }
+
+      if (M.magic > spellCost + 5 && shouldPressHandOfGod) {
         M.castSpell(handOfFateSpell);
         console.log(`🪄 spell cast successfully.`);
         setTimeout(() => {
-          const updatedBuffsCount = Object.keys(Game.buffs).filter(
+          const updatedBuffs = Object.keys(Game.buffs).filter(
             (buff) => !ignoredBuffs.includes(buff)
-          ).length;
+          );
 
-          if (updatedBuffsCount > buffsAppliedCount) {
+          if (updatedBuffs.length > appliedBuffs.length) {
             console.log(`🪄 spell triggered another buff.`);
             Game.Notify(
               `Spell triggered another buff!`,
@@ -405,24 +430,21 @@ var gCookie = {
   };
 
   const reenablePledge = function () {
-    if ((Game.pledgeT && Game.pledges) || $.hasOwnProperty("timeoutPledge")) {
-      if (!$.timeoutPledge) {
-        const timeToNextClick = Math.ceil(Game.pledgeT / Game.fps) + 5;
-        console.log(
-          `setting timeout for ${Game.sayTime(Game.pledgeT, -1)} in the future.`
+    if (!$.timeoutPledge) {
+      const timeToNextClick = Math.ceil(Game.pledgeT / Game.fps) + 5;
+      console.log(
+        `setting timeout for ${Game.sayTime(Game.pledgeT, -1)} in the future.`
+      );
+      $.timeoutPledge = setTimeout(() => {
+        // fallback, just in case something goes wrong.
+        [0, 1, 2, 3].forEach((i) =>
+          setTimeout(() => {
+            console.log(`clicking "Elder Pledge"`);
+            Game.Upgrades["Elder Pledge"].click();
+            $.timeoutPledge = null;
+          }, 10000 * i)
         );
-        $.timeoutPledge = setTimeout(() => {
-          console.log(`clicking "Elder Pledge"`);
-          Game.Upgrades["Elder Pledge"].click();
-          $.timeoutPledge = null;
-          // fallback, just in case something goes wrong.
-          [1, 2, 3, 4, 5, 6].forEach((i) =>
-            setTimeout(() => {
-              Game.Upgrades["Elder Pledge"].click();
-            }, 10000 * i)
-          );
-        }, timeToNextClick * 1000);
-      }
+      }, timeToNextClick * 1000);
     }
   };
 
@@ -502,7 +524,7 @@ var gCookie = {
     if ($.active.key5) {
       console.log(`script 5 started`);
       $.intervalRefreshFools = setInterval(refreshFools, 90000);
-      $.intervalPledge = setInterval(reenablePledge, 600000);
+      $.intervalPledge = setInterval(reenablePledge, 240000);
       // fire pledge function immediately because of the long interval wait.
       reenablePledge();
     } else {
