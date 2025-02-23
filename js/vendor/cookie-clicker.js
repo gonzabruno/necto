@@ -316,8 +316,10 @@ var gCookie = {
       const spellCost = M.getSpellCost(handOfFateSpell);
       const [buffName] = appliedBuffs;
       const buff = Game.buffs[buffName];
-      const tooEarly = 3 + buff.maxTime / Game.fps / 2; // a bit before half time
-      const tooLate = 3 + buff.maxTime / Game.fps / 3; // only a third of the time is left
+      // const tooEarly = 3 + buff.maxTime / Game.fps / 2; // a bit before half time
+      // const tooLate = 3 + buff.maxTime / Game.fps / 3; // only a third of the time is left
+      const tooEarly = Infinity;
+      const tooLate = 3 + (3 * buff.maxTime) / Game.fps / 4; // almost a quarter of the time gone
       const currentTime = buff.time / Game.fps;
       const shouldPressHandOfGod =
         currentTime < tooEarly && currentTime > tooLate;
