@@ -469,7 +469,10 @@ const gCookie = {
     if (!$.timeouts.pledge && Game.pledges) {
       const timeToNextClick = Math.ceil(Game.pledgeT / Game.fps) + 5;
       console.log(
-        `setting timeout for ${Game.sayTime(Game.pledgeT, -1)} in the future.`
+        `setting timeout for ${Game.sayTime(
+          Game.pledgeT || 1,
+          -1
+        )} in the future.`
       );
       setGameTimeout(
         "pledge",
