@@ -1,4 +1,23 @@
-var gCookie = {
+// Constantes inmutables
+const GCOOKIE_FIXED_INTERVALS = Object.freeze({
+  FARM: 45000,
+  GOLDEN: 500,
+  FORTUNE: 1500,
+  MAGIC: 2000,
+  LUMP: 120000,
+  WRINKLER: 90000,
+  REFRESH_FOOLS: 90000,
+  PLEDGE: 240000,
+  CLICK_COOKIE: 2,
+});
+
+// Valores configurables
+const GCOOKIE_CONFIG = {
+  BUY_ALL: 60000,
+  AUTO_BUY_DEFAULT: 900000,
+};
+
+const gCookie = {
   active: {
     key0: false,
     key1: false,
@@ -7,6 +26,8 @@ var gCookie = {
     key8: false,
     key9: false,
   },
+  intervals: {},
+  timeouts: {},
 };
 
 (function ($) {
@@ -15,8 +36,17 @@ var gCookie = {
   let plotsUnlocked = 0;
   let plotsOccupied = 0;
   let gardenCostOverridden = false;
-  let intervalFarmPeriod = 45000;
-  let intervalAutoBuyPeriod = 900000;
+  let intervalAutoBuyPeriod = GCOOKIE_CONFIG.AUTO_BUY_DEFAULT;
+
+  const setGameInterval = (key, callback, delay) => {
+    clearInterval($.intervals[key]);
+    $.intervals[key] = setInterval(callback, delay);
+  };
+
+  const setGameTimeout = (key, callback, delay) => {
+    clearTimeout($.timeouts[key]);
+    $.timeouts[key] = setTimeout(callback, delay);
+  };
 
   const dispatchUpdate = () => {
     document.dispatchEvent(updateEvent);
@@ -211,7 +241,7 @@ var gCookie = {
 
     var nextTick =
       ((((M.nextStep - Date.now()) / 1000) * 30 + 30) / Game.fps) * 1000;
-    var shouldHarvest = nextTick < intervalFarmPeriod * 1.5;
+    var shouldHarvest = nextTick < GCOOKIE_FIXED_INTERVALS.FARM * 1.5;
     for (var y = 0; y < 6; y++) {
       for (var x = 0; x < 6; x++) {
         if (M.isTileUnlocked(x, y)) {
@@ -333,22 +363,28 @@ var gCookie = {
       if (M.magic > spellCost + 5 && shouldPressHandOfGod) {
         M.castSpell(handOfFateSpell);
         console.log(`🪄 spell cast successfully.`);
-        setTimeout(() => {
-          const updatedBuffs = Object.keys(Game.buffs).filter(
-            (buff) => !ignoredBuffs.includes(buff) || buff === "Click frenzy"
-          );
-
-          if (updatedBuffs.length > appliedBuffs.length) {
-            console.log(`🪄 spell triggered another buff.`);
-            Game.Notify(
-              `Spell triggered another buff!`,
-              `<b>${new Date().toLocaleTimeString()}</b>`,
-              [22, 11]
+        setGameTimeout(
+          "spellCheck",
+          () => {
+            const updatedBuffs = Object.keys(Game.buffs).filter(
+              (buff) => !ignoredBuffs.includes(buff) || buff === "Click frenzy"
             );
-          } else {
-            console.log(`🪄 spell backfired or did not do anything important.`);
-          }
-        }, 1000);
+
+            if (updatedBuffs.length > appliedBuffs.length) {
+              console.log(`🪄 spell triggered another buff.`);
+              Game.Notify(
+                `Spell triggered another buff!`,
+                `<b>${new Date().toLocaleTimeString()}</b>`,
+                [22, 11]
+              );
+            } else {
+              console.log(
+                `🪄 spell backfired or did not do anything important.`
+              );
+            }
+          },
+          1000
+        );
       }
     }
   };
@@ -357,9 +393,8 @@ var gCookie = {
     Game.ClickSpecialPic();
     const shouldReset = ++counter > 30;
 
-    clearTimeout($.timeoutDragon);
-
-    $.timeoutDragon = setTimeout(
+    setGameTimeout(
+      "dragon",
       () => {
         clickDragonAtIntervals(shouldReset ? 0 : counter);
       },
@@ -387,7 +422,7 @@ var gCookie = {
       (el) =>
         el.locked === 0 && el.bulkPrice <= Game.cookies - gardenMaintanceCost
     )
-      .sort((a, b) => a.bulkPrice / a.storedCps > b.bulkPrice / b.storedCps)
+      .sort((a, b) => a.bulkPrice / a.storedCps - b.bulkPrice / b.storedCps)
       .shift();
 
     if (toBuy) {
@@ -406,9 +441,8 @@ var gCookie = {
   const buyBuildingsPeriodically = (withoutBuying) => {
     const toBuy = !withoutBuying ? buyBestBuilding() : null;
 
-    clearTimeout($.timeoutBuyBuildings);
-
-    $.timeoutBuyBuildings = setTimeout(
+    setGameTimeout(
+      "buyBuildings",
       buyBuildingsPeriodically,
       toBuy ? 500 : intervalAutoBuyPeriod
     );
@@ -432,28 +466,36 @@ var gCookie = {
   };
 
   const reenablePledge = function () {
-    if (!$.timeoutPledge) {
+    if (!$.timeouts.pledge) {
       const timeToNextClick = Math.ceil(Game.pledgeT / Game.fps) + 5;
       console.log(
         `setting timeout for ${Game.sayTime(Game.pledgeT, -1)} in the future.`
       );
-      $.timeoutPledge = setTimeout(() => {
-        // fallback, just in case something goes wrong.
-        [0, 1, 2, 3].forEach((i) =>
-          setTimeout(() => {
-            console.log(`clicking "Elder Pledge"`);
-            Game.Upgrades["Elder Pledge"].click();
-            $.timeoutPledge = null;
-          }, 10000 * i)
-        );
-      }, timeToNextClick * 1000);
+      setGameTimeout(
+        "pledge",
+        () => {
+          // fallback, just in case something goes wrong.
+          [0, 1, 2, 3, 4, 5, 6, 7].forEach((i) =>
+            setGameTimeout(
+              `pledgeRetry${i}`,
+              () => {
+                console.log(`clicking "Elder Pledge"`);
+                Game.Upgrades["Elder Pledge"].click();
+                delete $.timeouts.pledge;
+              },
+              10000 * i
+            )
+          );
+        },
+        timeToNextClick * 1000
+      );
     }
   };
 
   const clearReenablePledge = function () {
-    clearInterval($.intervalPledge);
-    clearTimeout($.timeoutPledge);
-    delete $.timeoutPledge;
+    clearInterval($.intervals.pledge);
+    clearTimeout($.timeouts.pledge);
+    delete $.timeouts.pledge;
   };
 
   const refreshFools = function () {
@@ -476,19 +518,31 @@ var gCookie = {
 
     if ($.active.key0) {
       console.log(`script 0 started`);
-      $.intervalGolden = setInterval(clickGoldenCookie, 500);
-      $.autoPopTwelveth = setInterval(popWrinklers, 90000);
-      $.intervalFortune = setInterval(clickFortuneNews, 1500);
-      $.intervalMagic = setInterval(
-        () => castSpell(Game.Objects["Wizard tower"].minigame),
-        2000
+      setGameInterval(
+        "golden",
+        clickGoldenCookie,
+        GCOOKIE_FIXED_INTERVALS.GOLDEN
       );
-      $.intervalLump = setInterval(harvestRipeLump, 120000);
+      setGameInterval(
+        "wrinkler",
+        popWrinklers,
+        GCOOKIE_FIXED_INTERVALS.WRINKLER
+      );
+      setGameInterval(
+        "fortune",
+        clickFortuneNews,
+        GCOOKIE_FIXED_INTERVALS.FORTUNE
+      );
+      setGameInterval(
+        "magic",
+        () => castSpell(Game.Objects["Wizard tower"].minigame),
+        GCOOKIE_FIXED_INTERVALS.MAGIC
+      );
+      setGameInterval("lump", harvestRipeLump, GCOOKIE_FIXED_INTERVALS.LUMP);
     } else {
-      clearInterval($.intervalGolden);
-      clearInterval($.intervalFortune);
-      clearInterval($.intervalMagic);
-      clearInterval($.intervalLump);
+      ["golden", "wrinkler", "fortune", "magic", "lump"].forEach((key) =>
+        clearInterval($.intervals[key])
+      );
       console.log(`script 0 stopped`);
     }
   };
@@ -499,9 +553,9 @@ var gCookie = {
 
     if ($.active.key1) {
       console.log(`script 1 started`);
-      $.intervalBuyAll = setInterval(Game.storeBuyAll, 60000);
+      setGameInterval("buyAll", Game.storeBuyAll, GCOOKIE_CONFIG.BUY_ALL);
     } else {
-      clearInterval($.intervalBuyAll);
+      clearInterval($.intervals.buyAll);
       console.log(`script 1 stopped`);
     }
   };
@@ -514,7 +568,7 @@ var gCookie = {
       console.log(`script 2 started`);
       clickDragonAtIntervals();
     } else {
-      clearTimeout($.timeoutDragon);
+      clearTimeout($.timeouts.dragon);
       console.log(`script 2 stopped`);
     }
   };
@@ -525,12 +579,15 @@ var gCookie = {
 
     if ($.active.key5) {
       console.log(`script 5 started`);
-      $.intervalRefreshFools = setInterval(refreshFools, 90000);
-      $.intervalPledge = setInterval(reenablePledge, 240000);
-      // fire pledge function immediately because of the long interval wait.
+      setGameInterval(
+        "refreshFools",
+        refreshFools,
+        GCOOKIE_FIXED_INTERVALS.REFRESH_FOOLS
+      );
+      setGameInterval("pledge", reenablePledge, GCOOKIE_FIXED_INTERVALS.PLEDGE);
       reenablePledge();
     } else {
-      clearInterval($.intervalRefreshFools);
+      clearInterval($.intervals.refreshFools);
       clearReenablePledge();
       console.log(`script 5 stopped`);
     }
@@ -540,10 +597,10 @@ var gCookie = {
     $.active.key8 = !$.active.key8;
     dispatchUpdate();
 
-    clearInterval($.intervalFarm);
-    $.intervalFarm = setInterval(
+    setGameInterval(
+      "farm",
       () => autoHarvestAndPlant(Game.Objects["Farm"].minigame, !$.active.key8),
-      intervalFarmPeriod
+      GCOOKIE_FIXED_INTERVALS.FARM
     );
     // fire harvest function immediately because of the long interval wait.
     autoHarvestAndPlant(Game.Objects["Farm"].minigame, !$.active.key8);
@@ -556,9 +613,13 @@ var gCookie = {
 
     if ($.active.key9) {
       console.log(`script 9 started`);
-      $.intervalClicker = setInterval(Game.ClickCookie, 2);
+      setGameInterval(
+        "clicker",
+        Game.ClickCookie,
+        GCOOKIE_FIXED_INTERVALS.CLICK_COOKIE
+      );
     } else {
-      clearInterval($.intervalClicker);
+      clearInterval($.intervals.clicker);
       console.log(`script 9 stopped`);
     }
   };
@@ -834,11 +895,14 @@ var gCookie = {
   });
 
   document.addEventListener("infoUpdated", () => {
-    clearTimeout(debounceTimeout);
-    debounceTimeout = setTimeout(() => {
-      updateUI();
-      saveCurrentState();
-    }, 0);
+    setGameTimeout(
+      "uiUpdate",
+      () => {
+        updateUI();
+        saveCurrentState();
+      },
+      0
+    );
   });
 
   // first run
