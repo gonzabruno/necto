@@ -9,6 +9,7 @@ const GCOOKIE_FIXED_INTERVALS = Object.freeze({
   REFRESH_FOOLS: 90000,
   PLEDGE: 240000,
   CLICK_COOKIE: 2,
+  BUFF_TIMERS: 1000,
 });
 
 // Valores configurables
@@ -515,6 +516,32 @@ const gCookie = {
     }
   };
 
+  const buffTimers = () => {
+    // get all buffs and extract their timers.
+    const timers = {};
+    for (const [key, buff] of Object.entries(Game.buffs)) {
+      timers[key] = buff.time;
+    }
+    const buffsDiv = document.querySelector("#buffs");
+    if (buffsDiv) {
+      // Get all buff elements (assume order matches Object.entries(Game.buffs))
+      const buffElements = Array.from(buffsDiv.children);
+      const buffNames = Object.keys(Game.buffs);
+      buffElements.forEach((child, i) => {
+        const buffName = buffNames[i];
+        if (!buffName) return;
+        let timerDiv = child.querySelector(".gb-timer");
+        if (!timerDiv) {
+          timerDiv = document.createElement("div");
+          timerDiv.className = "gb-timer";
+          timerDiv.dataset.buff = buffName;
+          child.appendChild(timerDiv);
+        }
+        timerDiv.textContent = Game.sayTime(timers[buffName], -1);
+      });
+    }
+  };
+
   const toggleActive0Loops = () => {
     $.active.key0 = !$.active.key0;
     dispatchUpdate();
@@ -542,9 +569,14 @@ const gCookie = {
         GCOOKIE_FIXED_INTERVALS.MAGIC
       );
       setGameInterval("lump", harvestRipeLump, GCOOKIE_FIXED_INTERVALS.LUMP);
+      setGameInterval(
+        "buffTimers",
+        buffTimers,
+        GCOOKIE_FIXED_INTERVALS.BUFF_TIMERS
+      );
     } else {
-      ["golden", "wrinkler", "fortune", "magic", "lump"].forEach((key) =>
-        clearInterval($.intervals[key])
+      ["golden", "wrinkler", "fortune", "magic", "lump", "buffTimers"].forEach(
+        (key) => clearInterval($.intervals[key])
       );
       console.log(`script 0 stopped`);
     }
@@ -733,6 +765,16 @@ const gCookie = {
   }
   .gbutton.current:not(.disabled) {
     background: gold;
+  }
+  .gb-timer {
+    position: absolute;
+    right: 100%;
+    white-space: nowrap;
+    font-size: 18px;
+    background: rgba(0,0,0, 0.3);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-right: 15px;
   }
   `;
     document.head.appendChild(style);
