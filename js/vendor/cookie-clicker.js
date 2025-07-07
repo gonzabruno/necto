@@ -471,9 +471,11 @@ const gCookie = {
   };
 
   const simulateBuyBestBuilding = () => {
-    const toBuy = Game.ObjectsById.filter((el) => el.locked === 0)
-      .sort((a, b) => a.bulkPrice / a.storedCps - b.bulkPrice / b.storedCps)
-      .shift();
+    const toBuyList = Game.ObjectsById.filter((el) => el.locked === 0).sort(
+      (a, b) => a.bulkPrice / a.storedCps - b.bulkPrice / b.storedCps
+    );
+
+    const [toBuy] = toBuyList;
 
     if (toBuy) {
       const msg = `Would buy ${Game.buyBulk} ${
@@ -481,6 +483,20 @@ const gCookie = {
       }.`;
       console.log(`❓💰❔ ${msg}`);
       Game.Notify(`❓💰❔ ${msg}`, ``, null, 10);
+    }
+
+    const toLog = toBuyList.reduce(
+      (acc, el) => {
+        acc.items.push(`%c${el.name}`);
+        acc.styles.push(
+          el.bulkPrice < Game.cookies ? "color: lightgreen" : "color: salmon"
+        );
+        return acc;
+      },
+      { items: [], styles: [] }
+    );
+    if (toLog.items.length) {
+      console.log(toLog.items.join(", "), ...toLog.styles);
     }
   };
 
