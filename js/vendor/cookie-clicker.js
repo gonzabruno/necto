@@ -23,9 +23,23 @@ const gCookie = {
     key0: false,
     key1: false,
     key2: false,
+    key3: false,
+    key4: false,
     key5: false,
+    key6: false,
+    key7: false,
     key8: false,
     key9: false,
+    keyShift0: false,
+    keyShift1: false,
+    keyShift2: false,
+    keyShift3: false,
+    keyShift4: false,
+    keyShift5: false,
+    keyShift6: false,
+    keyShift7: false,
+    keyShift8: false,
+    keyShift9: false,
   },
   intervals: {},
   timeouts: {},
@@ -62,9 +76,24 @@ const gCookie = {
     const toSave = {
       key0: !$.active.key0,
       key1: !$.active.key1,
+      key2: !$.active.key2,
+      key3: !$.active.key3,
+      key4: !$.active.key4,
       key5: !$.active.key5,
+      key6: !$.active.key6,
+      key7: !$.active.key7,
       key8: !$.active.key8,
       key9: !$.active.key9,
+      keyShift0: !$.active.keyShift0,
+      keyShift1: !$.active.keyShift1,
+      keyShift2: !$.active.keyShift2,
+      keyShift3: !$.active.keyShift3,
+      keyShift4: !$.active.keyShift4,
+      keyShift5: !$.active.keyShift5,
+      keyShift6: !$.active.keyShift6,
+      keyShift7: !$.active.keyShift7,
+      keyShift8: !$.active.keyShift8,
+      keyShift9: !$.active.keyShift9,
     };
     localStorage.setItem("gcookie-data", JSON.stringify(toSave));
   };
@@ -228,7 +257,11 @@ const gCookie = {
   };
 
   // harvest mature plants and re-seed them
-  const autoHarvestAndPlant = function (M, onlyHarvestMature = false) {
+  const autoHarvestAndPlant = function (
+    M,
+    replantSeed = true,
+    killWeeds = false
+  ) {
     if (!M) {
       return;
     }
@@ -257,17 +290,16 @@ const gCookie = {
               (me.ageTick + me.ageTickR) * M.plotBoost[y][x][0]
             );
             var limit = Math.min(97, 100 - maxTick);
-            if (!onlyHarvestMature && (me.weed || me.fungus)) {
-              // kill weeds
+            if (killWeeds && (me.weed || me.fungus)) {
               M.harvest(x, y);
               console.log(`💀 killed: ${me.name} at x: ${x}, y: ${y}.`);
             } else if (age >= limit && shouldHarvest) {
-              // harvest useful plants
+              // harvest useful plants (and weeds if killWeeds is false)
               M.harvest(x, y);
               console.log(
                 `✅ harvested: ${me.name} at x: ${x}, y: ${y}. Age: ${age}. Mature: ${me.mature}. Tick: ${me.ageTick}. Limit: ${limit}`
               );
-              if (!onlyHarvestMature) {
+              if (replantSeed) {
                 // replant them
                 M.useTool(me.id, x, y);
                 console.log(`🌱 planted: ${me.name} at x: ${x}, y: ${y}.`);
@@ -438,6 +470,20 @@ const gCookie = {
     return toBuy;
   };
 
+  const simulateBuyBestBuilding = () => {
+    const toBuy = Game.ObjectsById.filter((el) => el.locked === 0)
+      .sort((a, b) => a.bulkPrice / a.storedCps - b.bulkPrice / b.storedCps)
+      .shift();
+
+    if (toBuy) {
+      const msg = `Would buy ${Game.buyBulk} ${
+        Game.buyBulk === 1 ? toBuy.single : toBuy.plural
+      }.`;
+      console.log(`❓💰❔ ${msg}`);
+      Game.Notify(`❓💰❔ ${msg}`, ``, null, 10);
+    }
+  };
+
   // buy buildings automatically
   const buyBuildingsPeriodically = (withoutBuying) => {
     const toBuy = !withoutBuying ? buyBestBuilding() : null;
@@ -542,6 +588,25 @@ const gCookie = {
     }
   };
 
+  const setFarmLoop = () => {
+    setGameInterval(
+      "farm",
+      () =>
+        autoHarvestAndPlant(
+          Game.Objects["Farm"].minigame,
+          $.active.key7,
+          $.active.key8
+        ),
+      GCOOKIE_FIXED_INTERVALS.FARM
+    );
+    // fire harvest function immediately because of the long interval wait.
+    autoHarvestAndPlant(
+      Game.Objects["Farm"].minigame,
+      $.active.key7,
+      $.active.key8
+    );
+  };
+
   const toggleActive0Loops = () => {
     $.active.key0 = !$.active.key0;
     dispatchUpdate();
@@ -601,10 +666,37 @@ const gCookie = {
 
     if ($.active.key2) {
       console.log(`script 2 started`);
-      clickDragonAtIntervals();
     } else {
       clearTimeout($.timeouts.dragon);
       console.log(`script 2 stopped`);
+    }
+  };
+
+  const toggleActive3Loops = () => {
+    $.active.key3 = !$.active.key3;
+    dispatchUpdate();
+
+    if ($.active.key3) {
+      console.log(`script 3 started`);
+    } else {
+      console.log(`script 3 stopped`);
+    }
+  };
+
+  const toggleActive4Loops = () => {
+    $.active.key4 = !$.active.key4;
+    dispatchUpdate();
+
+    if ($.active.key4) {
+      console.log(`script 4 started`);
+      setGameInterval(
+        "refreshFools",
+        refreshFools,
+        GCOOKIE_FIXED_INTERVALS.REFRESH_FOOLS
+      );
+    } else {
+      clearInterval($.intervals.refreshFools);
+      console.log(`script 4 stopped`);
     }
   };
 
@@ -614,31 +706,36 @@ const gCookie = {
 
     if ($.active.key5) {
       console.log(`script 5 started`);
-      setGameInterval(
-        "refreshFools",
-        refreshFools,
-        GCOOKIE_FIXED_INTERVALS.REFRESH_FOOLS
-      );
       setGameInterval("pledge", reenablePledge, GCOOKIE_FIXED_INTERVALS.PLEDGE);
       reenablePledge();
     } else {
-      clearInterval($.intervals.refreshFools);
       clearReenablePledge();
       console.log(`script 5 stopped`);
     }
   };
 
+  const toggleActive6Loops = () => {
+    $.active.key6 = !$.active.key6;
+    dispatchUpdate();
+
+    if ($.active.key6) {
+      console.log(`script 6 started`);
+    } else {
+      console.log(`script 6 stopped`);
+    }
+  };
+
+  const toggleActive7Loops = () => {
+    $.active.key7 = !$.active.key7;
+    dispatchUpdate();
+    setFarmLoop();
+    console.log($.active.key7 ? `script 7 started` : `script 7 stopped`);
+  };
+
   const toggleActive8Loops = () => {
     $.active.key8 = !$.active.key8;
     dispatchUpdate();
-
-    setGameInterval(
-      "farm",
-      () => autoHarvestAndPlant(Game.Objects["Farm"].minigame, !$.active.key8),
-      GCOOKIE_FIXED_INTERVALS.FARM
-    );
-    // fire harvest function immediately because of the long interval wait.
-    autoHarvestAndPlant(Game.Objects["Farm"].minigame, !$.active.key8);
+    setFarmLoop();
     console.log($.active.key8 ? `script 8 started` : `script 8 stopped`);
   };
 
@@ -656,6 +753,116 @@ const gCookie = {
     } else {
       clearInterval($.intervals.clicker);
       console.log(`script 9 stopped`);
+    }
+  };
+
+  const toggleActiveShift0Loops = () => {
+    $.active.keyShift0 = !$.active.keyShift0;
+    dispatchUpdate();
+
+    if ($.active.keyShift0) {
+      console.log(`script Shift 0 started`);
+    } else {
+      console.log(`script Shift 0 stopped`);
+    }
+  };
+
+  const toggleActiveShift1Loops = () => {
+    $.active.keyShift1 = !$.active.keyShift1;
+    dispatchUpdate();
+
+    if ($.active.keyShift1) {
+      console.log(`script Shift 1 started`);
+    } else {
+      console.log(`script Shift 1 stopped`);
+    }
+  };
+
+  const toggleActiveShift2Loops = () => {
+    $.active.keyShift2 = !$.active.keyShift2;
+    dispatchUpdate();
+
+    if ($.active.keyShift2) {
+      console.log(`script Shift 2 started`);
+    } else {
+      console.log(`script Shift 2 stopped`);
+    }
+  };
+
+  const toggleActiveShift3Loops = () => {
+    $.active.keyShift3 = !$.active.keyShift3;
+    dispatchUpdate();
+
+    if ($.active.keyShift3) {
+      console.log(`script Shift 3 started`);
+    } else {
+      console.log(`script Shift 3 stopped`);
+    }
+  };
+
+  const toggleActiveShift4Loops = () => {
+    $.active.keyShift4 = !$.active.keyShift4;
+    dispatchUpdate();
+
+    if ($.active.keyShift4) {
+      console.log(`script Shift 4 started`);
+    } else {
+      console.log(`script Shift 4 stopped`);
+    }
+  };
+
+  const toggleActiveShift5Loops = () => {
+    $.active.keyShift5 = !$.active.keyShift5;
+    dispatchUpdate();
+
+    if ($.active.keyShift5) {
+      console.log(`script Shift 5 started`);
+    } else {
+      console.log(`script Shift 5 stopped`);
+    }
+  };
+
+  const toggleActiveShift6Loops = () => {
+    $.active.keyShift6 = !$.active.keyShift6;
+    dispatchUpdate();
+
+    if ($.active.keyShift6) {
+      console.log(`script Shift 6 started`);
+    } else {
+      console.log(`script Shift 6 stopped`);
+    }
+  };
+
+  const toggleActiveShift7Loops = () => {
+    $.active.keyShift7 = !$.active.keyShift7;
+    dispatchUpdate();
+
+    if ($.active.keyShift7) {
+      console.log(`script Shift 7 started`);
+    } else {
+      console.log(`script Shift 7 stopped`);
+    }
+  };
+
+  const toggleActiveShift8Loops = () => {
+    $.active.keyShift8 = !$.active.keyShift8;
+    dispatchUpdate();
+
+    if ($.active.keyShift8) {
+      console.log(`script Shift 8 started`);
+    } else {
+      console.log(`script Shift 8 stopped`);
+    }
+  };
+
+  const toggleActiveShift9Loops = () => {
+    $.active.keyShift9 = !$.active.keyShift9;
+    dispatchUpdate();
+
+    if ($.active.keyShift9) {
+      console.log(`script Shift 9 started`);
+    } else {
+      console.log(`script Shift 9 stopped`);
     }
   };
 
@@ -776,6 +983,14 @@ const gCookie = {
     padding: 10px 12px;
     margin-right: 15px;
   }
+  .gtooltip-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+  }
+  div + .gtooltip-title {
+    margin-top: 20px;
+  }
   `;
     document.head.appendChild(style);
   };
@@ -795,63 +1010,125 @@ const gCookie = {
   const addTooltip = () => {
     Game.attachTooltip(
       l("gcookie-wrapper"),
-      `<div style="padding:8px;width:280px;">
-    <div><b>Key 0:</b>
-      <ul style="padding: 3px;">
+      `
+<div style="padding: 8px; width: 280px">
+  <h3 class="gtooltip-title">Digits</h3>
+  <div>
+    <b>Key 0:</b>
+    <ul style="padding: 3px">
       <li>Auto: Click Golden cookies (and reindeers)</li>
       <li>Auto: Click Fortune news</li>
       <li>Auto: Pop last wrinkler</li>
       <li>Auto: Cast "Force the Hand of Fate"</li>
       <li>Auto: Click Ripe sugar Lumps</li>
-      </ul>
-    </div>
-    <div><b>Key 1:</b>
-      <ul style="padding: 3px;">
+    </ul>
+  </div>
+  <div>
+    <b>Key 1:</b>
+    <ul style="padding: 3px">
       <li>Auto: Buy upgrades periodically</li>
-      </ul>
-    </div>
-    <div><b>Key 2:</b>
-      <ul style="padding: 3px;">
-      <li>Auto: Pet the Dragon</li>
-      </ul>
-    </div>
-    <div><b>Key 3:</b>
-      <ul style="padding: 3px;">
-      <li>Pop all wrinklers</li>
-      </ul>
-    </div>
-    <div><b>Key 4:</b>
-      <ul style="padding: 3px;">
-      <li>Buy every upgrade available</li>
-      </ul>
-    </div>
-    <div><b>Key 5:</b>
-      <ul style="padding: 3px;">
+    </ul>
+  </div>
+  <!--
+  <div>
+    <b>Key 2:</b>
+    <ul style="padding: 3px">
+      <li></li>
+    </ul>
+  </div>
+  <div>
+    <b>Key 3:</b>
+    <ul style="padding: 3px">
+      <li></li>
+    </ul>
+  </div>
+  -->
+  <div>
+    <b>Key 4:</b>
+    <ul style="padding: 3px">
       <li>Auto: Refresh Fools season</li>
+    </ul>
+  </div>
+  <div>
+    <b>Key 5:</b>
+    <ul style="padding: 3px">
       <li>Auto: Reenable "Elder Pledge"</li>
-      </ul>
-    </div>
-    <div><b>Key 6:</b>
-      <ul style="padding: 3px;">
-      <li>Buy building(s) with best benefit-cost ratio</li>
-      </ul>
-    </div>
-    <div><b>Key 7:</b>
-      <ul style="padding: 3px;">
-      <li>Show/log important information</li>
-      </ul>
-    </div>
-    <div><b>Key 8:</b>
-      <ul style="padding: 3px;">
-      <li>Auto: Harvest Mature plants and reseed them</li>
-      </ul>
-    </div>
-    <div><b>Key 9:</b>
-      <ul style="padding: 3px;">
+    </ul>
+  </div>
+  <!--
+  <div>
+    <b>Key 6:</b>
+    <ul style="padding: 3px">
+      <li></li>
+    </ul>
+  </div>
+  -->
+  <div>
+    <b>Key 7:</b>
+    <ul style="padding: 3px">
+      <li>Auto: Reseed plants (harvesting mature plants always happens)</li>
+    </ul>
+  </div>
+  <div>
+    <b>Key 8:</b>
+    <ul style="padding: 3px">
+      <li>Auto: Kill weeds (harvesting mature plants always happens)</li>
+    </ul>
+  </div>
+  <div>
+    <b>Key 9:</b>
+    <ul style="padding: 3px">
       <li>Auto: Click Big Cookie</li>
-      </ul>
-    </div>
-    </div>`,
+    </ul>
+  </div>
+  <!--
+  <h3 class="gtooltip-title">Shift + Digits</h3>
+  <div>
+    <b>Shift + Key 8:</b>
+    <ul style="padding: 3px">
+      <li>Auto: Cultivate new plants</li>
+    </ul>
+  </div>
+  -->
+  <h3 class="gtooltip-title">Numpad</h3>
+  <div>
+    <b>Numpad 2:</b>
+    <ul style="padding: 3px">
+      <li>Auto: Pet the Dragon</li>
+    </ul>
+  </div>
+  <div>
+    <b>Numpad 3:</b>
+    <ul style="padding: 3px">
+      <li>Pop all wrinklers</li>
+    </ul>
+  </div>
+  <div>
+    <b>Numpad 4:</b>
+    <ul style="padding: 3px">
+      <li>Buy every upgrade available</li>
+    </ul>
+  </div>
+  <div>
+    <b>Numpad 6:</b>
+    <ul style="padding: 3px">
+      <li>Buy building(s) with best benefit-cost ratio</li>
+    </ul>
+  </div>
+  <div>
+    <b>Numpad 7:</b>
+    <ul style="padding: 3px">
+      <li>Show/log important information</li>
+    </ul>
+  </div>
+  <h3>Alt + Numpad</h3>
+  <div>
+    <b>Alt + Numpad 6:</b>
+    <ul style="padding: 3px">
+      <li>Simulate buying building(s) with best benefit-cost ratio</li>
+    </ul>
+  </div>
+</div>`,
       "this"
     );
   };
@@ -861,7 +1138,12 @@ const gCookie = {
     const listStr = `<ul id="gcookie">
   <li>${formatBool($.active.key0)} 0</li>
   <li>${formatBool($.active.key1)} 1</li>
+  <li>${formatBool($.active.key2)} 2</li>
+  <li>${formatBool($.active.key3)} 3</li>
+  <li>${formatBool($.active.key4)} 4</li>
   <li>${formatBool($.active.key5)} 5</li>
+  <li>${formatBool($.active.key6)} 6</li>
+  <li>${formatBool($.active.key7)} 7</li>
   <li>${formatBool($.active.key8)} 8</li>
   <li>${formatBool($.active.key9)} 9</li>
   <li>${formatBool(gardenCostOverridden)} garden cost</li>
@@ -887,47 +1169,111 @@ const gCookie = {
   document.addEventListener(
     "keydown",
     (event) => {
-      const keyName = event.key;
-
-      if (keyName === "0") {
-        toggleActive0Loops();
+      if (["Shift", "Control", "Alt"].includes(event.key)) {
+        return;
       }
 
-      if (keyName === "1") {
-        toggleActive1Loops();
-      }
-
-      if (keyName === "2") {
-        toggleActive2Loops();
-      }
-
-      if (keyName === "3") {
-        popAllWrinklers();
-      }
-
-      if (keyName === "4") {
-        Game.storeBuyAll();
-        console.log(`bought everything.`);
-      }
-
-      if (keyName === "5") {
-        toggleActive5Loops();
-      }
-
-      if (keyName === "6") {
-        buyBestBuilding(true);
-      }
-
-      if (keyName === "7") {
-        logImportantInfo();
-      }
-
-      if (keyName === "8") {
-        toggleActive8Loops();
-      }
-
-      if (keyName === "9") {
-        toggleActive9Loops();
+      switch (event.code) {
+        case "Digit0":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift0Loops();
+          } else {
+            toggleActive0Loops();
+          }
+          break;
+        case "Digit1":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift1Loops();
+          } else {
+            toggleActive1Loops();
+          }
+          break;
+        case "Digit2":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift2Loops();
+          } else {
+            toggleActive2Loops();
+          }
+          break;
+        case "Digit3":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift3Loops();
+          } else {
+            toggleActive3Loops();
+          }
+          break;
+        case "Digit4":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift4Loops();
+          } else {
+            toggleActive4Loops();
+          }
+          break;
+        case "Digit5":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift5Loops();
+          } else {
+            toggleActive5Loops();
+          }
+          break;
+        case "Digit6":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift6Loops();
+          } else {
+            toggleActive6Loops();
+          }
+          break;
+        case "Digit7":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift7Loops();
+          } else {
+            toggleActive7Loops();
+          }
+          break;
+        case "Digit8":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift8Loops();
+          } else {
+            toggleActive8Loops();
+          }
+          break;
+        case "Digit9":
+          if (event.getModifierState("Shift")) {
+            toggleActiveShift9Loops();
+          } else {
+            toggleActive9Loops();
+          }
+          break;
+        case "Numpad0":
+          return;
+        case "Numpad1":
+          return;
+        case "Numpad2":
+          clickDragonAtIntervals();
+          break;
+        case "Numpad3":
+          popAllWrinklers();
+          break;
+        case "Numpad4":
+          Game.storeBuyAll();
+          console.log(`bought everything.`);
+          break;
+        case "Numpad5":
+          return;
+        case "Numpad6":
+          if (event.getModifierState("Alt")) {
+            simulateBuyBestBuilding();
+          } else {
+            buyBestBuilding(true);
+          }
+          break;
+        case "Numpad7":
+          logImportantInfo();
+          break;
+        case "Numpad8":
+          return;
+        case "Numpad9":
+          return;
       }
     },
     false
@@ -958,9 +1304,24 @@ const gCookie = {
   overrideReindeerPopFunction();
   toggleActive0Loops();
   toggleActive1Loops();
+  toggleActive2Loops();
+  toggleActive3Loops();
+  toggleActive4Loops();
   toggleActive5Loops();
+  toggleActive6Loops();
+  toggleActive7Loops();
   toggleActive8Loops();
   toggleActive9Loops();
+  toggleActiveShift0Loops();
+  toggleActiveShift1Loops();
+  toggleActiveShift2Loops();
+  toggleActiveShift3Loops();
+  toggleActiveShift4Loops();
+  toggleActiveShift5Loops();
+  toggleActiveShift6Loops();
+  toggleActiveShift7Loops();
+  toggleActiveShift8Loops();
+  toggleActiveShift9Loops();
 
   // award shadow achievement for using addons.
   Game.Win("Third-party");
