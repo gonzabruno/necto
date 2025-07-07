@@ -259,8 +259,8 @@ const gCookie = {
   // harvest mature plants and re-seed them
   const autoHarvestAndPlant = function (
     M,
-    replantSeed = true,
-    killWeeds = false
+    killWeeds = false,
+    replantSeed = false
   ) {
     if (!M) {
       return;
@@ -1066,13 +1066,13 @@ const gCookie = {
   <div>
     <b>Key 7:</b>
     <ul style="padding: 3px">
-      <li>Auto: Reseed plants (harvesting mature plants always happens)</li>
+      <li>Auto: Kill weeds (harvesting mature plants always happens)</li>
     </ul>
-  </div>
-  <div>
+    </div>
+    <div>
     <b>Key 8:</b>
     <ul style="padding: 3px">
-      <li>Auto: Kill weeds (harvesting mature plants always happens)</li>
+      <li>Auto: Reseed plants (harvesting mature plants always happens)</li>
     </ul>
   </div>
   <div>
