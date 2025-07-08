@@ -1192,6 +1192,7 @@ const gCookie = {
       $.active.useless.push(plantName);
       dispatchUpdate();
     }
+    return $.active.useless;
   };
 
   $.removeUselessPlant = function (plantName) {
@@ -1200,6 +1201,7 @@ const gCookie = {
       $.active.useless.splice(idx, 1);
       dispatchUpdate();
     }
+    return $.active.useless;
   };
 
   /****************************************************************************************/
