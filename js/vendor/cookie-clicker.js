@@ -40,6 +40,7 @@ const gCookie = {
     keyShift7: false,
     keyShift8: false,
     keyShift9: false,
+    useless: ["Brown mold", "Cheapcap", "Glovemorel", "Meddleweed"],
   },
   intervals: {},
   timeouts: {},
@@ -94,6 +95,7 @@ const gCookie = {
       keyShift7: !$.active.keyShift7,
       keyShift8: !$.active.keyShift8,
       keyShift9: !$.active.keyShift9,
+      useless: $.active.useless,
     };
     localStorage.setItem("gcookie-data", JSON.stringify(toSave));
   };
@@ -290,7 +292,10 @@ const gCookie = {
               (me.ageTick + me.ageTickR) * M.plotBoost[y][x][0]
             );
             var limit = Math.min(97, 100 - maxTick);
-            if (killWeeds && (me.weed || me.fungus)) {
+            if (
+              $.active.useless.includes(me.name) ||
+              (killWeeds && (me.weed || me.fungus))
+            ) {
               M.harvest(x, y);
               console.log(`💀 killed: ${me.name} at x: ${x}, y: ${y}.`);
             } else if (age >= limit && shouldHarvest) {
@@ -1175,6 +1180,26 @@ const gCookie = {
     const list = create(listStr);
     const oldList = document.querySelector("#gcookie");
     oldList.replaceWith(list);
+  };
+
+  // Expone funciones para manipular la lista de plantas y la lista de 'useless'
+  $.listFarmPlants = function () {
+    console.log(Game.Objects["Farm"]?.minigame?.plants);
+  };
+
+  $.addUselessPlant = function (plantName) {
+    if (!$.active.useless.includes(plantName)) {
+      $.active.useless.push(plantName);
+      dispatchUpdate();
+    }
+  };
+
+  $.removeUselessPlant = function (plantName) {
+    const idx = $.active.useless.indexOf(plantName);
+    if (idx !== -1) {
+      $.active.useless.splice(idx, 1);
+      dispatchUpdate();
+    }
   };
 
   /****************************************************************************************/
