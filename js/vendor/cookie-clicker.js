@@ -41,6 +41,7 @@ const gCookie = {
     keyShift8: false,
     keyShift9: false,
     useless: ["Brown mold", "Cheapcap", "Glovemorel", "Meddleweed"],
+    alwaysAge: ["Juicy queenbeet", "Drowsyfern"],
   },
   intervals: {},
   timeouts: {},
@@ -96,6 +97,7 @@ const gCookie = {
       keyShift8: !$.active.keyShift8,
       keyShift9: !$.active.keyShift9,
       useless: $.active.useless,
+      alwaysAge: $.active.alwaysAge,
     };
     localStorage.setItem("gcookie-data", JSON.stringify(toSave));
   };
@@ -111,6 +113,288 @@ const gCookie = {
         );
       };
       gardenCostOverridden = true;
+      dispatchUpdate();
+    }
+  };
+
+  // override aging logic for plants in $.active.alwaysAge
+  const overrideGardenAging = () => {
+    if (Game.Objects["Farm"].minigame) {
+      const M = Game.Objects["Farm"].minigame;
+
+      M.logic = function () {
+        //run each frame
+        var now = Date.now();
+
+        if (!M.freeze) {
+          M.nextStep = Math.min(M.nextStep, now + M.stepT * 1000);
+          if (now >= M.nextStep) {
+            M.computeStepT();
+            M.nextStep = now + M.stepT * 1000;
+
+            M.computeBoostPlot();
+            M.computeMatures();
+
+            var weedMult = M.soilsById[M.soil].weedMult;
+
+            var dragonBoost = 1 + 0.05 * Game.auraMult("Supreme Intellect");
+
+            var loops = 1;
+            if (M.soilsById[M.soil].key == "woodchips") loops = 3;
+            loops = randomFloor(loops * dragonBoost);
+            loops *= M.loopsMult;
+            M.loopsMult = 1;
+
+            for (var y = 0; y < 6; y++) {
+              for (var x = 0; x < 6; x++) {
+                if (M.isTileUnlocked(x, y)) {
+                  var tile = M.plot[y][x];
+                  var me = M.plantsById[tile[0] - 1];
+                  if (tile[0] > 0) {
+                    if ($.active.alwaysAge.includes(me.name)) {
+                      // Force aging for these plants
+                      const aging = Math.ceil(
+                        (me.ageTick + me.ageTickR * Math.random()) *
+                          M.plotBoost[y][x][0] *
+                          dragonBoost
+                      );
+                      tile[1] += aging;
+                    } else {
+                      // Normal behavior for the rest
+                      tile[1] += randomFloor(
+                        (me.ageTick + me.ageTickR * Math.random()) *
+                          M.plotBoost[y][x][0] *
+                          dragonBoost
+                      );
+                    }
+                    tile[1] = Math.max(tile[1], 0);
+                    if (me.immortal) tile[1] = Math.min(me.mature + 1, tile[1]);
+                    else if (tile[1] >= 100) {
+                      //die of old age
+                      M.plot[y][x] = [0, 0];
+                      if (me.onDie) me.onDie(x, y);
+                      if (
+                        M.soilsById[M.soil].key == "pebbles" &&
+                        Math.random() < 0.35
+                      ) {
+                        if (M.unlockSeed(me))
+                          Game.Popup(
+                            loc("Unlocked %1 seed.", me.name),
+                            Game.mouseX,
+                            Game.mouseY
+                          );
+                      }
+                    } else if (!me.noContam) {
+                      //other plant contamination
+                      //only occurs in cardinal directions
+                      //immortal plants and plants with noContam are immune
+
+                      var list = [];
+                      for (var i in M.plantContam) {
+                        if (
+                          Math.random() < M.plantContam[i] &&
+                          (!M.plants[i].weed || Math.random() < weedMult)
+                        )
+                          list.push(i);
+                      }
+                      var contam = choose(list);
+
+                      if (contam && me.key != contam) {
+                        if (
+                          (!M.plants[contam].weed &&
+                            !M.plants[contam].fungus) ||
+                          Math.random() < M.plotBoost[y][x][2]
+                        ) {
+                          var any = 0;
+                          var neighs = {}; //all surrounding plants
+                          var neighsM = {}; //all surrounding mature plants
+                          for (var i in M.plants) {
+                            neighs[i] = 0;
+                          }
+                          for (var i in M.plants) {
+                            neighsM[i] = 0;
+                          }
+                          var neigh = M.getTile(x, y - 1);
+                          if (neigh[0] > 0) {
+                            var age = neigh[1];
+                            neigh = M.plantsById[neigh[0] - 1];
+                            any++;
+                            neighs[neigh.key]++;
+                            if (age >= neigh.mature) {
+                              neighsM[neigh.key]++;
+                            }
+                          }
+                          var neigh = M.getTile(x, y + 1);
+                          if (neigh[0] > 0) {
+                            var age = neigh[1];
+                            neigh = M.plantsById[neigh[0] - 1];
+                            any++;
+                            neighs[neigh.key]++;
+                            if (age >= neigh.mature) {
+                              neighsM[neigh.key]++;
+                            }
+                          }
+                          var neigh = M.getTile(x - 1, y);
+                          if (neigh[0] > 0) {
+                            var age = neigh[1];
+                            neigh = M.plantsById[neigh[0] - 1];
+                            any++;
+                            neighs[neigh.key]++;
+                            if (age >= neigh.mature) {
+                              neighsM[neigh.key]++;
+                            }
+                          }
+                          var neigh = M.getTile(x + 1, y);
+                          if (neigh[0] > 0) {
+                            var age = neigh[1];
+                            neigh = M.plantsById[neigh[0] - 1];
+                            any++;
+                            neighs[neigh.key]++;
+                            if (age >= neigh.mature) {
+                              neighsM[neigh.key]++;
+                            }
+                          }
+
+                          if (neighsM[contam] >= 1)
+                            M.plot[y][x] = [M.plants[contam].id + 1, 0];
+                        }
+                      }
+                    }
+                  } else {
+                    //plant spreading and mutation
+                    //happens on all 8 tiles around this one
+                    for (var loop = 0; loop < loops; loop++) {
+                      var any = 0;
+                      var neighs = {}; //all surrounding plants
+                      var neighsM = {}; //all surrounding mature plants
+                      for (var i in M.plants) {
+                        neighs[i] = 0;
+                      }
+                      for (var i in M.plants) {
+                        neighsM[i] = 0;
+                      }
+                      var neigh = M.getTile(x, y - 1);
+                      if (neigh[0] > 0) {
+                        var age = neigh[1];
+                        neigh = M.plantsById[neigh[0] - 1];
+                        any++;
+                        neighs[neigh.key]++;
+                        if (age >= neigh.mature) {
+                          neighsM[neigh.key]++;
+                        }
+                      }
+                      var neigh = M.getTile(x, y + 1);
+                      if (neigh[0] > 0) {
+                        var age = neigh[1];
+                        neigh = M.plantsById[neigh[0] - 1];
+                        any++;
+                        neighs[neigh.key]++;
+                        if (age >= neigh.mature) {
+                          neighsM[neigh.key]++;
+                        }
+                      }
+                      var neigh = M.getTile(x - 1, y);
+                      if (neigh[0] > 0) {
+                        var age = neigh[1];
+                        neigh = M.plantsById[neigh[0] - 1];
+                        any++;
+                        neighs[neigh.key]++;
+                        if (age >= neigh.mature) {
+                          neighsM[neigh.key]++;
+                        }
+                      }
+                      var neigh = M.getTile(x + 1, y);
+                      if (neigh[0] > 0) {
+                        var age = neigh[1];
+                        neigh = M.plantsById[neigh[0] - 1];
+                        any++;
+                        neighs[neigh.key]++;
+                        if (age >= neigh.mature) {
+                          neighsM[neigh.key]++;
+                        }
+                      }
+                      var neigh = M.getTile(x - 1, y - 1);
+                      if (neigh[0] > 0) {
+                        var age = neigh[1];
+                        neigh = M.plantsById[neigh[0] - 1];
+                        any++;
+                        neighs[neigh.key]++;
+                        if (age >= neigh.mature) {
+                          neighsM[neigh.key]++;
+                        }
+                      }
+                      var neigh = M.getTile(x - 1, y + 1);
+                      if (neigh[0] > 0) {
+                        var age = neigh[1];
+                        neigh = M.plantsById[neigh[0] - 1];
+                        any++;
+                        neighs[neigh.key]++;
+                        if (age >= neigh.mature) {
+                          neighsM[neigh.key]++;
+                        }
+                      }
+                      var neigh = M.getTile(x + 1, y - 1);
+                      if (neigh[0] > 0) {
+                        var age = neigh[1];
+                        neigh = M.plantsById[neigh[0] - 1];
+                        any++;
+                        neighs[neigh.key]++;
+                        if (age >= neigh.mature) {
+                          neighsM[neigh.key]++;
+                        }
+                      }
+                      var neigh = M.getTile(x + 1, y + 1);
+                      if (neigh[0] > 0) {
+                        var age = neigh[1];
+                        neigh = M.plantsById[neigh[0] - 1];
+                        any++;
+                        neighs[neigh.key]++;
+                        if (age >= neigh.mature) {
+                          neighsM[neigh.key]++;
+                        }
+                      }
+                      if (any > 0) {
+                        var muts = M.getMuts(neighs, neighsM);
+
+                        var list = [];
+                        for (var ii = 0; ii < muts.length; ii++) {
+                          if (
+                            Math.random() < muts[ii][1] &&
+                            (!M.plants[muts[ii][0]].weed ||
+                              Math.random() < weedMult) &&
+                            ((!M.plants[muts[ii][0]].weed &&
+                              !M.plants[muts[ii][0]].fungus) ||
+                              Math.random() < M.plotBoost[y][x][2])
+                          )
+                            list.push(muts[ii][0]);
+                        }
+                        if (list.length > 0)
+                          M.plot[y][x] = [M.plants[choose(list)].id + 1, 0];
+                      } else if (loop == 0) {
+                        //weeds in empty tiles (no other plants must be nearby)
+                        var chance = 0.002 * weedMult * M.plotBoost[y][x][2];
+                        if (Math.random() < chance)
+                          M.plot[y][x] = [M.plants["meddleweed"].id + 1, 0];
+                      }
+                    }
+                  }
+                }
+              }
+            }
+            M.toRebuild = true;
+            M.toCompute = true;
+          }
+        }
+        if (M.toRebuild) M.buildPlot();
+        if (M.toCompute) M.computeEffs();
+
+        if (Game.keys[27]) {
+          //esc
+          if (M.seedSelected > -1)
+            M.plantsById[M.seedSelected].l.classList.remove("on");
+          M.seedSelected = -1;
+        }
+      };
       dispatchUpdate();
     }
   };
@@ -270,6 +554,7 @@ const gCookie = {
 
     if (!gardenCostOverridden) {
       overrideGardenGetCost();
+      overrideGardenAging();
     }
 
     plotsUnlocked = 0;
@@ -1182,14 +1467,20 @@ const gCookie = {
     oldList.replaceWith(list);
   };
 
-  // Expone funciones para manipular la lista de plantas y la lista de 'useless'
+  // Expone funciones para manipular la lista de plantas y las listas 'useless' y 'alwaysAge'
   $.listFarmPlants = function () {
-    console.log(Game.Objects["Farm"]?.minigame?.plants);
+    const M = Game.Objects["Farm"]?.minigame;
+    if (M) {
+      return Object.values(M.plants).map((plant) => plant.name);
+    }
+    return [];
   };
 
+  // Funciones para la lista useless
   $.addUselessPlant = function (plantName) {
     if (!$.active.useless.includes(plantName)) {
       $.active.useless.push(plantName);
+      saveCurrentState();
       dispatchUpdate();
     }
     return $.active.useless;
@@ -1199,9 +1490,44 @@ const gCookie = {
     const idx = $.active.useless.indexOf(plantName);
     if (idx !== -1) {
       $.active.useless.splice(idx, 1);
+      saveCurrentState();
       dispatchUpdate();
     }
     return $.active.useless;
+  };
+
+  $.clearUselessPlants = function () {
+    $.active.useless = [];
+    saveCurrentState();
+    dispatchUpdate();
+    return $.active.useless;
+  };
+
+  // Funciones para la lista alwaysAge
+  $.addAlwaysAgePlant = function (plantName) {
+    if (!$.active.alwaysAge.includes(plantName)) {
+      $.active.alwaysAge.push(plantName);
+      saveCurrentState();
+      dispatchUpdate();
+    }
+    return $.active.alwaysAge;
+  };
+
+  $.removeAlwaysAgePlant = function (plantName) {
+    const idx = $.active.alwaysAge.indexOf(plantName);
+    if (idx !== -1) {
+      $.active.alwaysAge.splice(idx, 1);
+      saveCurrentState();
+      dispatchUpdate();
+    }
+    return $.active.alwaysAge;
+  };
+
+  $.clearAlwaysAgePlants = function () {
+    $.active.alwaysAge = [];
+    saveCurrentState();
+    dispatchUpdate();
+    return $.active.alwaysAge;
   };
 
   /****************************************************************************************/
