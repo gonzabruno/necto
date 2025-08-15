@@ -486,8 +486,8 @@ const gCookie = {
       const msg = `Would buy ${Game.buyBulk} ${
         Game.buyBulk === 1 ? toBuy.single : toBuy.plural
       }.`;
-      console.log(`❓💰❔ ${msg}`);
-      Game.Notify(`❓💰❔ ${msg}`, ``, null, 10);
+      const icon = toBuy.bulkPrice < Game.cookies ? `❔💰❔` : `❓💰❓`;
+      Game.Notify(`${icon} ${msg}`, ``, null, 10);
     }
 
     const toLog = toBuyList.reduce(
