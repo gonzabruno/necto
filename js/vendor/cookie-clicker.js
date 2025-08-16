@@ -41,7 +41,17 @@ const gCookie = {
     keyShift8: false,
     keyShift9: false,
     useless: ["Brown mold", "Cheapcap", "Glovemorel", "Meddleweed"],
-    alwaysAge: ["Juicy queenbeet", "Drowsyfern"],
+    alwaysAge: [
+      "Juicy queenbeet",
+      "Drowsyfern",
+      "Bakeberry",
+      "Elderwort",
+      "Cronerice",
+      "Duketater",
+      "Tidygrass",
+      "Everdaisy",
+      "Queenbeet",
+    ],
   },
   intervals: {},
   timeouts: {},
@@ -151,8 +161,11 @@ const gCookie = {
                   var tile = M.plot[y][x];
                   var me = M.plantsById[tile[0] - 1];
                   if (tile[0] > 0) {
-                    if ($.active.alwaysAge.includes(me.name)) {
-                      // Force aging for these plants
+                    if (
+                      $.active.alwaysAge.includes(me.name) &&
+                      tile[1] < me.mature
+                    ) {
+                      // Force aging for these plants if they are not mature yet
                       const aging = Math.ceil(
                         (me.ageTick + me.ageTickR * Math.random()) *
                           M.plotBoost[y][x][0] *
