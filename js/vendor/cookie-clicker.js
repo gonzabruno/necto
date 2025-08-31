@@ -952,15 +952,14 @@ const gCookie = {
         () => castSpell(Game.Objects["Wizard tower"].minigame),
         GCOOKIE_FIXED_INTERVALS.MAGIC
       );
-      setGameInterval("lump", harvestRipeLump, GCOOKIE_FIXED_INTERVALS.LUMP);
       setGameInterval(
         "buffTimers",
         buffTimers,
         GCOOKIE_FIXED_INTERVALS.BUFF_TIMERS
       );
     } else {
-      ["golden", "wrinkler", "fortune", "magic", "lump", "buffTimers"].forEach(
-        (key) => clearInterval($.intervals[key])
+      ["golden", "wrinkler", "fortune", "magic", "buffTimers"].forEach((key) =>
+        clearInterval($.intervals[key])
       );
       console.log(`script 0 stopped`);
     }
@@ -1039,8 +1038,10 @@ const gCookie = {
 
     if ($.active.key6) {
       console.log(`script 6 started`);
+      setGameInterval("lump", harvestRipeLump, GCOOKIE_FIXED_INTERVALS.LUMP);
     } else {
       console.log(`script 6 stopped`);
+      clearGameInterval("lump");
     }
   };
 
@@ -1339,7 +1340,6 @@ const gCookie = {
       <li>Auto: Click Fortune news</li>
       <li>Auto: Pop last wrinkler</li>
       <li>Auto: Cast "Force the Hand of Fate"</li>
-      <li>Auto: Click Ripe sugar Lumps</li>
     </ul>
   </div>
   <div>
@@ -1374,14 +1374,12 @@ const gCookie = {
       <li>Auto: Reenable "Elder Pledge"</li>
     </ul>
   </div>
-  <!--
   <div>
     <b>Key 6:</b>
     <ul style="padding: 3px">
-      <li></li>
+      <li>Auto: Click Ripe sugar Lumps</li>
     </ul>
   </div>
-  -->
   <div>
     <b>Key 7:</b>
     <ul style="padding: 3px">
