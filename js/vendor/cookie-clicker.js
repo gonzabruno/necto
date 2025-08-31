@@ -1041,7 +1041,7 @@ const gCookie = {
       setGameInterval("lump", harvestRipeLump, GCOOKIE_FIXED_INTERVALS.LUMP);
     } else {
       console.log(`script 6 stopped`);
-      clearGameInterval("lump");
+      clearGameInterval($.intervals.lump);
     }
   };
 
