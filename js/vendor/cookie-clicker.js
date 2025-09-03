@@ -494,6 +494,14 @@ const gCookie = {
     }
   };
 
+  // set heralds to 100 after 1 second
+  const overrideHeralds = () => {
+    setTimeout(() => {
+      Game.heralds = 100;
+      l("heraldsAmount").textContent = Math.floor(Game.heralds);
+    }, 1000);
+  };
+
   // auto-click golden and reindeer cookies
   const clickGoldenCookie = function () {
     Game.shimmers.forEach(function (shimmer) {
@@ -1682,6 +1690,7 @@ const gCookie = {
   loadInitialState();
   insertStyles();
   overrideReindeerPopFunction();
+  overrideHeralds();
   toggleActive0Loops();
   toggleActive1Loops();
   toggleActive2Loops();
