@@ -10,6 +10,7 @@ const GCOOKIE_FIXED_INTERVALS = Object.freeze({
   PLEDGE: 240000,
   CLICK_COOKIE: 2,
   BUFF_TIMERS: 1000,
+  LUMP_TYPE: 1000,
 });
 
 // Valores configurables
@@ -915,6 +916,17 @@ const gCookie = {
     }
   };
 
+  const showCurrentLumpType = () => {
+    let lumpTypeDiv = document.querySelector(".gb-lump-type");
+    const lumpDiv = document.querySelector("#lumps");
+    if (!lumpTypeDiv) {
+      lumpTypeDiv = document.createElement("div");
+      lumpTypeDiv.className = "gb-lump-type";
+      lumpDiv.appendChild(lumpTypeDiv);
+    }
+    lumpTypeDiv.textContent = Game.lumpCurrentType;
+  };
+
   const setFarmLoop = () => {
     setGameInterval(
       "farm",
@@ -965,10 +977,20 @@ const gCookie = {
         buffTimers,
         GCOOKIE_FIXED_INTERVALS.BUFF_TIMERS
       );
-    } else {
-      ["golden", "wrinkler", "fortune", "magic", "buffTimers"].forEach((key) =>
-        clearInterval($.intervals[key])
+      setGameInterval(
+        "lumpType",
+        showCurrentLumpType,
+        GCOOKIE_FIXED_INTERVALS.LUMP_TYPE
       );
+    } else {
+      [
+        "golden",
+        "wrinkler",
+        "fortune",
+        "magic",
+        "buffTimers",
+        "lumpType",
+      ].forEach((key) => clearInterval($.intervals[key]));
       console.log(`script 0 stopped`);
     }
   };
@@ -1318,6 +1340,11 @@ const gCookie = {
   }
   div + .gtooltip-title {
     margin-top: 20px;
+  }
+  .gb-lump-type {
+    position: absolute;
+    top: -15px;
+    left: 10px;
   }
   `;
     document.head.appendChild(style);
