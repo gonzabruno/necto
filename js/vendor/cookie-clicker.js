@@ -916,6 +916,17 @@ const gCookie = {
     }
   };
 
+  const getLumpTypeName = (type) => {
+    const types = {
+      0: "common",
+      1: "bifurcated",
+      2: "golden",
+      3: "meaty",
+      4: "caramelized",
+    };
+    return types[type] || "unknown";
+  };
+
   const showCurrentLumpType = () => {
     let lumpTypeDiv = document.querySelector(".gb-lump-type");
     const lumpDiv = document.querySelector("#lumps");
@@ -924,7 +935,7 @@ const gCookie = {
       lumpTypeDiv.className = "gb-lump-type";
       lumpDiv.appendChild(lumpTypeDiv);
     }
-    lumpTypeDiv.textContent = Game.lumpCurrentType;
+    lumpTypeDiv.textContent = getLumpTypeName(Game.lumpCurrentType);
   };
 
   const setFarmLoop = () => {
@@ -1343,8 +1354,9 @@ const gCookie = {
   }
   .gb-lump-type {
     position: absolute;
-    top: -15px;
-    left: 10px;
+    top: 6px;
+    left: 65px;
+    font-size: 12px;
   }
   `;
     document.head.appendChild(style);
