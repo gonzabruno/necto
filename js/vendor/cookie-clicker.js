@@ -680,6 +680,16 @@ const gCookie = {
       "Loan 2 (interest)",
       "Loan 3",
       "Loan 3 (interest)",
+      "Sugar blessing",
+      "Haggler's luck",
+      "Haggler's misery",
+      "Crafty pixies",
+      "Nasty goblins",
+      "Magic adept",
+      "Magic inept",
+      "Devastation",
+      "Sugar frenzy",
+      "Gifted out",
     ];
 
     const appliedBuffs = Object.keys(Game.buffs).filter(
