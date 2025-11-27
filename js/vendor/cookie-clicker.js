@@ -76,6 +76,9 @@ const gCookie = {
     $.timeouts[key] = setTimeout(callback, delay);
   };
 
+  // saved garden layout for restore operations
+  $.savedGardenLayout = null;
+
   const dispatchUpdate = () => {
     document.dispatchEvent(updateEvent);
   };
@@ -727,11 +730,60 @@ const gCookie = {
 
             if (updatedBuffs.length > appliedBuffs.length) {
               console.log(`🪄 spell triggered another buff.`);
-              Game.Notify(
-                `Spell triggered another buff!`,
-                `<b>${new Date().toLocaleTimeString()}</b>`,
-                [22, 11]
-              );
+              // Only run the sell-distribution if the triggered buffs include
+              // the important 'Click frenzy' buff; otherwise skip.
+              if (updatedBuffs.includes("Click frenzy")) {
+                // If player has >100 vigintillion cookies, run the garden
+                // harvest/whiskerbloom experiment during the frenzy, then
+                // restore when the frenzy ends (30s).
+                const VIGINTILLION = Math.pow(10, 63);
+                const threshold = 100 * VIGINTILLION;
+                try {
+                  if (Game.cookies > threshold) {
+                    try {
+                      harvestAndPlantWhiskerbloom();
+                    } catch (e) {
+                      console.warn("harvestAndPlantWhiskerbloom failed", e);
+                    }
+                    // schedule garden restore after ~30 seconds (buff duration)
+                    setGameTimeout(
+                      "restoreGardenAfterFrenzy",
+                      () => {
+                        try {
+                          restoreGardenFromSaved();
+                        } catch (e) {
+                          console.warn("restoreGardenFromSaved failed", e);
+                        }
+                      },
+                      30000
+                    );
+                  }
+                } catch (e) {
+                  /* ignore threshold check errors */
+                }
+
+                // Still run the sell-distribution to maximize the buff effect
+                try {
+                  distributeSellForSpell(SPELL_SELL_LIST);
+                } catch (e) {
+                  console.warn("distributeSellForSpell failed to start", e);
+                }
+                Game.Notify(
+                  `Spell triggered Click frenzy!`,
+                  `<b>${new Date().toLocaleTimeString()}</b>`,
+                  [22, 11]
+                );
+              } else {
+                // notify the player that another buff was triggered, but it
+                // wasn't Click frenzy (so we skipped the sell distribution)
+                Game.Notify(
+                  `Spell triggered another buff (not Click frenzy)`,
+                  `<b>${new Date().toLocaleTimeString()}</b><br>${updatedBuffs.join(
+                    ", "
+                  )}`,
+                  [22, 11]
+                );
+              }
             } else {
               console.log(
                 `🪄 spell backfired or did not do anything important.`
@@ -1598,6 +1650,501 @@ const gCookie = {
     return $.active.alwaysAge;
   };
 
+  // Buy/sell helpers for Wizard towers bound to Numpad8 / Numpad9
+  const numpad8BuyWizardTowers = () => {
+    const building = Game.Objects["Wizard tower"];
+    if (!building || building.locked) return; // nothing to do
+
+    const prevBulk = typeof Game.buyBulk !== "undefined" ? Game.buyBulk : 1;
+
+    const canAffordWithBulk = (n) => {
+      Game.buyBulk = n;
+      const ok = building.bulkPrice <= Game.cookies;
+      Game.buyBulk = prevBulk;
+      return ok;
+    };
+
+    if (canAffordWithBulk(100)) {
+      Game.buyBulk = 100;
+      Game.ClickProduct(building.id);
+      Game.buyBulk = prevBulk;
+      console.log(`Bought up to 100 Wizard towers (requested).`);
+      Game.Notify("Bought Wizard towers", "Attempted to buy 100", null, 6);
+      return;
+    }
+
+    if (canAffordWithBulk(10)) {
+      Game.buyBulk = 10;
+      Game.ClickProduct(building.id);
+      Game.buyBulk = prevBulk;
+      console.log(`Bought up to 10 Wizard towers (fallback).`);
+      Game.Notify("Bought Wizard towers", "Attempted to buy 10", null, 6);
+      return;
+    }
+
+    // cannot buy either 100 or 10 -> do nothing
+    // (silently ignore to match user's request)
+  };
+
+  const numpad9SellWizardTowers = () => {
+    const building = Game.Objects["Wizard tower"];
+    if (!building) return;
+
+    const owned = building.amount || 0;
+    if (owned < 20) return; // do nothing when less than 20 owned
+
+    const sellAmount = owned >= 100 ? 100 : 10;
+
+    try {
+      // Prefer the building instance method (confirmed present)
+      if (typeof building.sell === "function") {
+        building.sell(sellAmount);
+        console.log(`Sold ${sellAmount} Wizard towers (building.sell).`);
+        Game.Notify("Sold Wizard towers", `Sold ${sellAmount}`, null, 6);
+        return;
+      }
+
+      // Fallback to using Game.ClickProduct if available
+      if (typeof Game.ClickProduct === "function") {
+        for (let i = 0; i < sellAmount; i++) {
+          Game.ClickProduct(building.id, true);
+        }
+        console.log(
+          `Attempted to sell ${sellAmount} Wizard towers via Game.ClickProduct fallback.`
+        );
+        Game.Notify(
+          "Sold Wizard towers",
+          `Attempted to sell ${sellAmount}`,
+          null,
+          6
+        );
+        return;
+      }
+
+      // DOM fallback: try to find a product element and click its sell button
+      const prodEl =
+        document.getElementById("product" + building.id) ||
+        document.querySelector('.product[data-id="' + building.id + '"]');
+      if (prodEl) {
+        const sellBtn =
+          prodEl.querySelector(".sell") || prodEl.querySelector(".productSell");
+        if (sellBtn) {
+          for (let i = 0; i < sellAmount; i++) sellBtn.click();
+          console.log(
+            `Attempted to sell ${sellAmount} Wizard towers via DOM fallback.`
+          );
+          Game.Notify(
+            "Sold Wizard towers",
+            `Attempted to sell ${sellAmount}`,
+            null,
+            6
+          );
+          return;
+        }
+      }
+
+      console.warn("No known sell API found for Wizard tower.");
+    } catch (e) {
+      console.warn("Sell attempts failed", e);
+    }
+  };
+
+  // Distribute temporary sells to maximize short buff from selling buildings
+  // buildingNames: array of building display names (as used in Game.Objects)
+  // totalDuration: total buff lifetime in seconds (default 30)
+  // primaryWindow: seconds over which to distribute sells (default 20)
+  // maxBatches: cap number of timeouts per building to avoid flooding timers
+  const distributeSellForSpell = (
+    buildingNames,
+    totalDuration = 30,
+    primaryWindow = 20,
+    maxBatches = 40
+  ) => {
+    if (!Array.isArray(buildingNames) || buildingNames.length === 0) return;
+
+    const runId = Date.now();
+    const totalMs = totalDuration * 1000;
+    const primaryMs = Math.max(0, primaryWindow * 1000);
+
+    const soldCounts = {};
+    const plannedCounts = {};
+    // track cookies at start (to measure production gains) and proceeds from sells
+    const cookiesAtStart = Game.cookies;
+    let totalSellProceeds = 0;
+    const sellProceedsPerType = {};
+
+    buildingNames.forEach((name) => {
+      const b = Game.Objects[name];
+      if (!b) return;
+
+      const amount = b.amount || 0;
+      const sellable = Math.max(0, amount - 20); // never go below 20
+      if (sellable <= 0) return;
+
+      soldCounts[name] = 0;
+      plannedCounts[name] = sellable;
+
+      const numBatches = Math.min(sellable, maxBatches);
+      const baseBatch = Math.floor(sellable / numBatches);
+      let remainder = sellable % numBatches;
+
+      for (let j = 0; j < numBatches; j++) {
+        const batchCount = baseBatch + (remainder > 0 ? 1 : 0);
+        if (remainder > 0) remainder--;
+
+        // schedule times evenly across primary window
+        const whenMs =
+          numBatches === 1 ? 0 : Math.round((j * primaryMs) / (numBatches - 1));
+        const key = `spellSell-${runId}-${name.replace(/\s+/g, "_")}-${j}`;
+
+        setGameTimeout(
+          key,
+          () => {
+            try {
+              const currentAvailable = b.amount || 0;
+              const allowedToSell = Math.max(0, currentAvailable - 20);
+              const toSell = Math.min(batchCount, allowedToSell);
+              if (toSell <= 0) return;
+              // prefer the building.sell method; capture immediate cookie delta
+              try {
+                const preCookies = Game.cookies;
+                if (typeof b.sell === "function") {
+                  b.sell(toSell);
+                } else if (typeof Game.ClickProduct === "function") {
+                  for (let k = 0; k < toSell; k++)
+                    Game.ClickProduct(b.id, true);
+                }
+                const delta = (Game.cookies || 0) - (preCookies || 0);
+                if (delta > 0) {
+                  totalSellProceeds += delta;
+                  sellProceedsPerType[name] =
+                    (sellProceedsPerType[name] || 0) + delta;
+                }
+              } catch (e) {
+                // if sell method threw, still attempt to count sold amount below
+              }
+              soldCounts[name] += toSell;
+            } catch (e) {
+              console.warn("Error selling during spell distribution", name, e);
+            }
+          },
+          whenMs
+        );
+      }
+    });
+
+    // notify how many sells are planned
+    try {
+      const totalPlanned = Object.values(plannedCounts).reduce(
+        (a, b) => a + b,
+        0
+      );
+      if (totalPlanned > 0) {
+        Game.Notify(
+          "Spell sell scheduled",
+          `Scheduled ${totalPlanned} buildings to be sold across ${
+            Object.keys(plannedCounts).length
+          } types.`,
+          [22, 11]
+        );
+      }
+    } catch (e) {
+      /* ignore notification errors */
+    }
+
+    // schedule buyback a little after totalDuration to ensure buff ended
+    const buybackKey = `spellBuyback-${runId}`;
+    setGameTimeout(
+      buybackKey,
+      () => {
+        try {
+          let totalRebought = 0;
+          const perTypeRebought = {};
+          for (const name in soldCounts) {
+            const sold = soldCounts[name] || 0;
+            if (sold <= 0) continue;
+            const toBuy = Math.max(0, sold - 20); // buy 20 less than were sold
+            if (toBuy <= 0) continue;
+            const b = Game.Objects[name];
+            if (!b) continue;
+            if (typeof b.buy === "function") {
+              b.buy(toBuy);
+            } else {
+              for (let k = 0; k < toBuy; k++) Game.ClickProduct(b.id, false);
+            }
+            perTypeRebought[name] = toBuy;
+            totalRebought += toBuy;
+          }
+
+          // After the primary buyback (which leaves 20 less per type), check if
+          // production gain during the buff (excluding proceeds from sells)
+          // is sufficient to buy the withheld 20 per type. If yes, re-buy them.
+          try {
+            const productionGain =
+              (Game.cookies || 0) -
+              (cookiesAtStart || 0) -
+              (totalSellProceeds || 0);
+            let extraNeededCost = 0;
+            const extraPerType = {};
+            for (const name in soldCounts) {
+              const sold = soldCounts[name] || 0;
+              const withheld = Math.min(20, sold);
+              if (withheld <= 0) continue;
+              const b = Game.Objects[name];
+              if (!b || typeof b.getSumPrice !== "function") continue;
+              const cost = b.getSumPrice(withheld);
+              extraPerType[name] = { withheld, cost };
+              extraNeededCost += cost;
+            }
+            if (extraNeededCost > 0 && productionGain >= extraNeededCost) {
+              // we can afford to re-buy the withheld 20s using production gains
+              for (const name in extraPerType) {
+                const info = extraPerType[name];
+                const b = Game.Objects[name];
+                const toBuyExtra = info.withheld;
+                if (toBuyExtra <= 0) continue;
+                if (typeof b.buy === "function") {
+                  b.buy(toBuyExtra);
+                } else {
+                  for (let k = 0; k < toBuyExtra; k++)
+                    Game.ClickProduct(b.id, false);
+                }
+                perTypeRebought[name] =
+                  (perTypeRebought[name] || 0) + toBuyExtra;
+                totalRebought += toBuyExtra;
+              }
+            }
+          } catch (e) {
+            /* ignore extra rebuy errors */
+          }
+          const totalSold = Object.values(soldCounts).reduce(
+            (a, b) => a + b,
+            0
+          );
+          const typeCount = Object.keys(perTypeRebought).length;
+          Game.Notify(
+            "Spell sell window ended",
+            `Buildings restored — ${totalSold} sold earlier. Re-bought ${totalRebought} (${typeCount} types; 20 less per type).`,
+            [22, 11]
+          );
+          // also log detailed per-type info to console
+          console.log("Spell buyback details:", {
+            soldCounts,
+            perTypeRebought,
+          });
+        } catch (e) {
+          console.warn("Error during spell buyback", e);
+        }
+      },
+      totalMs + 1000
+    );
+  };
+
+  // Default list of buildings to consider selling during the spell buff.
+  // Edit this list to fit your strategy.
+  const SPELL_SELL_LIST = [
+    "Shipment",
+    "Alchemy lab",
+    "Factory",
+    "Antimatter condenser",
+    "Portal",
+    "Prism",
+    "Chancemaker",
+    "Idleverse",
+    "Time machine",
+    "Mine",
+  ];
+
+  // -- Garden helpers: harvest and replace with Whiskerbloom, and restore --
+  const findPlantIdByNameFragment = (M, fragment) => {
+    fragment = (fragment || "").toLowerCase();
+    if (!M || !M.plants) return null;
+    for (const k in M.plants) {
+      const p = M.plants[k];
+      if (!p || !p.name) continue;
+      const n = p.name.toLowerCase();
+      if (n.includes(fragment)) return p.id;
+    }
+    return null;
+  };
+
+  const harvestAndPlantWhiskerbloom = () => {
+    const M = Game.Objects["Farm"]?.minigame;
+    if (!M) {
+      Game.Notify("Garden error", "Farm minigame not available", [6, 0]);
+      return;
+    }
+
+    const whiskerId = findPlantIdByNameFragment(M, "whisker");
+    if (whiskerId === null) {
+      Game.Notify(
+        "Garden error",
+        "Could not find Whiskerbloom plant in garden data.",
+        [6, 0]
+      );
+      return;
+    }
+
+    // ensure the Whiskerbloom seed is unlocked/available before touching the garden
+    const whiskerPlant = M.plantsById[whiskerId];
+    if (!whiskerPlant || !whiskerPlant.unlocked) {
+      Game.Notify(
+        "Garden error",
+        "Whiskerbloom seed not unlocked — leaving garden unchanged.",
+        [6, 0]
+      );
+      return;
+    }
+
+    // save current layout as a 6x6 array of plant ids (0 = empty)
+    const saved = Array.from({ length: 6 }, () => Array(6).fill(0));
+    let savedCount = 0;
+    for (let y = 0; y < 6; y++) {
+      for (let x = 0; x < 6; x++) {
+        if (!M.isTileUnlocked(x, y)) continue;
+        const tile = M.plot[y][x] || [0, 0];
+        if (tile[0] > 0) {
+          // store both the raw plot value (tile[0]) and the plant name to help restore
+          const me = M.plantsById[tile[0] - 1];
+          saved[y][x] = { r: tile[0], n: me ? me.name : null };
+          savedCount++;
+        } else saved[y][x] = 0;
+        // harvest whatever is there (to clear the plot)
+        if (tile[0] > 0) M.harvest(x, y);
+      }
+    }
+
+    // store saved layout on the addon state
+    $.savedGardenLayout = saved;
+
+    // plant Whiskerbloom on every unlocked tile
+    let planted = 0;
+    for (let y = 0; y < 6; y++) {
+      for (let x = 0; x < 6; x++) {
+        if (!M.isTileUnlocked(x, y)) continue;
+        try {
+          M.useTool(whiskerId, x, y);
+          planted++;
+        } catch (e) {
+          console.warn("Failed to plant whiskerbloom at", x, y, e);
+        }
+      }
+    }
+
+    Game.Notify(
+      "Garden replaced",
+      `Saved ${savedCount} plants; planted ${planted} Whiskerbloom(s).`,
+      [20, 3]
+    );
+    console.log("harvestAndPlantWhiskerbloom:", { savedCount, planted });
+  };
+
+  const restoreGardenFromSaved = () => {
+    const M = Game.Objects["Farm"]?.minigame;
+    if (!M) {
+      Game.Notify("Garden error", "Farm minigame not available", [6, 0]);
+      return;
+    }
+
+    const saved = $.savedGardenLayout;
+    if (!saved) {
+      Game.Notify(
+        "Garden restore",
+        "No saved garden layout to restore.",
+        [6, 0]
+      );
+      return;
+    }
+
+    const whiskerId = findPlantIdByNameFragment(M, "whisker");
+
+    let harvestedWhisker = 0;
+    let replantedTotal = 0;
+    const skipped = [];
+
+    for (let y = 0; y < 6; y++) {
+      for (let x = 0; x < 6; x++) {
+        if (!M.isTileUnlocked(x, y)) continue;
+        const tile = M.plot[y][x] || [0, 0];
+        // represent no plant as -1 so id 0 (Baker's Wheat) is distinct
+        let currentId = -1;
+        if (tile[0] > 0) {
+          const me = M.plantsById[tile[0] - 1];
+          if (me) currentId = me.id;
+        }
+
+        const savedCell = (saved[y] && saved[y][x]) || 0;
+        const targetRaw =
+          savedCell && typeof savedCell === "object" ? savedCell.r : savedCell; // raw tile value (plantId+1)
+        const targetName =
+          savedCell && typeof savedCell === "object" ? savedCell.n : null;
+        const targetId = targetRaw > 0 ? targetRaw - 1 : -1; // plant id expected by useTool (or -1)
+
+        // harvest whiskerbloom if present
+        if (whiskerId !== null && currentId === whiskerId) {
+          M.harvest(x, y);
+          harvestedWhisker++;
+          // after harvesting the whiskerbloom the tile is empty — represent
+          // empty as -1 so it's not confused with a real plant id (0).
+          currentId = -1;
+        }
+
+        // if we need to plant targetId and it's different than current
+        if (targetRaw > 0 && currentId !== targetId) {
+          let plantedOk = false;
+          // try using the numeric id first
+          if (targetId >= 0) {
+            try {
+              M.useTool(targetId, x, y);
+              // verify the tile now contains expected raw value
+              const newTile = M.plot[y][x] || [0, 0];
+              if (newTile[0] === targetRaw) plantedOk = true;
+            } catch (e) {
+              /* continue to fallback */
+            }
+          }
+
+          // fallback: try finding the plant by name and use that id
+          if (!plantedOk && targetName) {
+            try {
+              for (const k in M.plants) {
+                const p = M.plants[k];
+                if (!p || !p.name) continue;
+                if (p.name === targetName) {
+                  M.useTool(p.id, x, y);
+                  const newTile = M.plot[y][x] || [0, 0];
+                  if (newTile[0] === targetRaw) {
+                    plantedOk = true;
+                    break;
+                  }
+                }
+              }
+            } catch (e) {
+              /* ignore */
+            }
+          }
+
+          if (plantedOk) {
+            replantedTotal++;
+          } else {
+            skipped.push({ x, y, targetRaw, targetName });
+          }
+        }
+      }
+    }
+
+    Game.Notify(
+      "Garden restored",
+      `Harvested ${harvestedWhisker} whiskerbloom(s); replanted ${replantedTotal} tiles.`,
+      [20, 3]
+    );
+    console.log("restoreGardenFromSaved:", {
+      harvestedWhisker,
+      replantedTotal,
+      skipped,
+    });
+  };
+
   /****************************************************************************************/
   /****************************************************************************************/
   // real program
@@ -1682,9 +2229,11 @@ const gCookie = {
           }
           break;
         case "Numpad0":
-          return;
+          harvestAndPlantWhiskerbloom();
+          break;
         case "Numpad1":
-          return;
+          restoreGardenFromSaved();
+          break;
         case "Numpad2":
           clickDragonAtIntervals();
           break;
@@ -1708,9 +2257,11 @@ const gCookie = {
           logImportantInfo();
           break;
         case "Numpad8":
-          return;
+          numpad8BuyWizardTowers();
+          break;
         case "Numpad9":
-          return;
+          numpad9SellWizardTowers();
+          break;
       }
     },
     false
