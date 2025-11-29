@@ -1788,13 +1788,57 @@ const gCookie = {
       const baseBatch = Math.floor(sellable / numBatches);
       let remainder = sellable % numBatches;
 
+      // decide how many batches to reserve for the tail so the buff still has
+      // presence during the last ~8 seconds of the total duration.
+      // Ensure the last sell happens at most 10s before the end so its
+      // per-sell 10s buff covers the tail of the total window.
+      const tailSec = Math.min(8, totalDuration);
+      const tailMs = tailSec * 1000;
+      const sellEndMs = Math.max(0, totalMs - 10000); // last allowed sell time
+      const tailWindowEnd = sellEndMs;
+      const tailWindowStart = Math.max(0, tailWindowEnd - tailMs);
+      const tailWindowLength = Math.max(0, tailWindowEnd - tailWindowStart);
+      const tailBatches = Math.max(
+        1,
+        Math.round((numBatches * tailWindowLength) / Math.max(1, totalMs))
+      );
+      const mainBatches = Math.max(0, numBatches - tailBatches);
+
       for (let j = 0; j < numBatches; j++) {
         const batchCount = baseBatch + (remainder > 0 ? 1 : 0);
         if (remainder > 0) remainder--;
 
-        // schedule times evenly across primary window
-        const whenMs =
-          numBatches === 1 ? 0 : Math.round((j * primaryMs) / (numBatches - 1));
+        // schedule: most batches in [0..primaryMs], but reserve `tailBatches`
+        // to be placed in the last `tailMs` (so their 10s buff overlaps the end)
+        let whenMs = 0;
+        if (mainBatches <= 0) {
+          // all batches are tail batches -> spread across tailWindowStart..tailWindowEnd
+          const t = j; // 0..tailBatches-1
+          whenMs =
+            tailBatches === 1
+              ? tailWindowStart
+              : Math.round((t * tailWindowLength) / (tailBatches - 1)) +
+                tailWindowStart;
+        } else if (j < mainBatches) {
+          // main window distribution across [0 .. mainWindowEndMs]
+          const mainWindowEndMs = Math.max(
+            0,
+            Math.min(primaryMs, tailWindowStart)
+          );
+          whenMs =
+            mainBatches === 1
+              ? 0
+              : Math.round((j * mainWindowEndMs) / (mainBatches - 1));
+        } else {
+          // tail batches distribution (placed within tailWindowStart..tailWindowEnd)
+          const t = j - mainBatches; // 0..tailBatches-1
+          whenMs =
+            tailBatches === 1
+              ? tailWindowStart
+              : Math.round((t * tailWindowLength) / (tailBatches - 1)) +
+                tailWindowStart;
+        }
+
         const key = `spellSell-${runId}-${name.replace(/\s+/g, "_")}-${j}`;
 
         setGameTimeout(
