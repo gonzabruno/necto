@@ -173,7 +173,7 @@ const gCookie = {
                       const aging = Math.ceil(
                         (me.ageTick + me.ageTickR * Math.random()) *
                           M.plotBoost[y][x][0] *
-                          dragonBoost
+                          dragonBoost,
                       );
                       tile[1] += aging;
                     } else {
@@ -181,7 +181,7 @@ const gCookie = {
                       tile[1] += randomFloor(
                         (me.ageTick + me.ageTickR * Math.random()) *
                           M.plotBoost[y][x][0] *
-                          dragonBoost
+                          dragonBoost,
                       );
                     }
                     tile[1] = Math.max(tile[1], 0);
@@ -198,7 +198,7 @@ const gCookie = {
                           Game.Popup(
                             loc("Unlocked %1 seed.", me.name),
                             Game.mouseX,
-                            Game.mouseY
+                            Game.mouseY,
                           );
                       }
                     } else if (!me.noContam) {
@@ -462,7 +462,7 @@ const gCookie = {
             Game.Notify(
               loc("You found a cookie!"),
               "<b>" + cookie + "</b>",
-              Game.Upgrades[cookie].icon
+              Game.Upgrades[cookie].icon,
             );
             // gonza override: end
           } else cookie = "";
@@ -478,10 +478,10 @@ const gCookie = {
               : "<br>" +
                 loc(
                   "You are also rewarded with %1!",
-                  Game.Upgrades[cookie].dname
+                  Game.Upgrades[cookie].dname,
                 )),
           [12, 9],
-          6
+          6,
         );
         popup =
           '<div style="font-size:80%;">' +
@@ -568,11 +568,7 @@ const gCookie = {
   };
 
   // harvest mature plants and re-seed them
-  const autoHarvestAndPlant = function (
-    M,
-    killWeeds = false,
-    replantSeed = false
-  ) {
+  const autoHarvestAndPlant = function (M, killWeeds = false, replantSeed) {
     if (!M) {
       return;
     }
@@ -587,7 +583,10 @@ const gCookie = {
 
     var nextTick =
       ((((M.nextStep - Date.now()) / 1000) * 30 + 30) / Game.fps) * 1000;
-    var shouldHarvest = nextTick < GCOOKIE_FIXED_INTERVALS.FARM * 1.5;
+    var shouldHarvest =
+      nextTick < GCOOKIE_FIXED_INTERVALS.FARM * 1.5 &&
+      replantSeed !== undefined;
+    var shouldSave = false;
     for (var y = 0; y < 6; y++) {
       for (var x = 0; x < 6; x++) {
         if (M.isTileUnlocked(x, y)) {
@@ -599,7 +598,7 @@ const gCookie = {
             // age
             var age = tile[1];
             var maxTick = Math.ceil(
-              (me.ageTick + me.ageTickR) * M.plotBoost[y][x][0]
+              (me.ageTick + me.ageTickR) * M.plotBoost[y][x][0],
             );
             var limit = Math.min(97, 100 - maxTick);
             if (
@@ -612,17 +611,21 @@ const gCookie = {
               // harvest useful plants (and weeds if killWeeds is false)
               M.harvest(x, y);
               console.log(
-                `✅ harvested: ${me.name} at x: ${x}, y: ${y}. Age: ${age}. Mature: ${me.mature}. Tick: ${me.ageTick}. Limit: ${limit}`
+                `✅ harvested: ${me.name} at x: ${x}, y: ${y}. Age: ${age}. Mature: ${me.mature}. Tick: ${me.ageTick}. Limit: ${limit}`,
               );
               if (replantSeed) {
                 // replant them
                 M.useTool(me.id, x, y);
+                shouldSave = true;
                 console.log(`🌱 planted: ${me.name} at x: ${x}, y: ${y}.`);
               }
             }
           }
         }
       }
+    }
+    if (shouldSave) {
+      Game.WriteSave();
     }
   };
 
@@ -638,7 +641,7 @@ const gCookie = {
         Game.Notify(
           loc("Fortune!"),
           loc("A golden cookie has appeared."),
-          [10, 32]
+          [10, 32],
         );
         Game.fortuneGC = 1;
         var newShimmer = new Game.shimmer("golden", { noWrath: true });
@@ -646,9 +649,9 @@ const gCookie = {
         Game.Notify(
           loc("Fortune!"),
           loc(
-            "You gain <b>one hour</b> of your CpS (capped at double your bank)."
+            "You gain <b>one hour</b> of your CpS (capped at double your bank).",
           ),
-          [10, 32]
+          [10, 32],
         );
         Game.fortuneCPS = 1;
         Game.Earn(Math.min(Game.cookiesPs * 60 * 60, Game.cookies));
@@ -656,7 +659,7 @@ const gCookie = {
         Game.Notify(
           effect.dname,
           loc("You've unlocked a new upgrade."),
-          effect.icon
+          effect.icon,
         );
         effect.unlock();
         console.log(`🥠 ${effect.dname} clicked!`);
@@ -696,12 +699,13 @@ const gCookie = {
     ];
 
     const appliedBuffs = Object.keys(Game.buffs).filter(
-      (buff) => !ignoredBuffs.includes(buff)
+      (buff) => !ignoredBuffs.includes(buff),
     );
 
     if (appliedBuffs.length > 0) {
       const handOfFateSpell = M.spellsById[1];
       const spellCost = M.getSpellCost(handOfFateSpell);
+      const requiredMagic = spellCost + 5; // keep a small buffer
       const [buffName] = appliedBuffs;
       const buff = Game.buffs[buffName];
       // const tooEarly = 3 + buff.maxTime / Game.fps / 2; // a bit before half time
@@ -712,20 +716,20 @@ const gCookie = {
       const shouldPressHandOfGod =
         currentTime < tooEarly && currentTime > tooLate;
 
-      if (false && M.magic > spellCost + 5) {
+      if (false && M.magic > requiredMagic) {
         console.log(
-          `tooEarly: ${tooEarly} - currentTime: ${currentTime} - tooLate: ${tooLate} - shouldPress? ${shouldPressHandOfGod}`
+          `tooEarly: ${tooEarly} - currentTime: ${currentTime} - tooLate: ${tooLate} - shouldPress? ${shouldPressHandOfGod}`,
         );
       }
 
-      if (M.magic > spellCost + 5 && shouldPressHandOfGod) {
+      if (M.magic > requiredMagic && shouldPressHandOfGod) {
         M.castSpell(handOfFateSpell);
         console.log(`🪄 spell cast successfully.`);
         setGameTimeout(
           "spellCheck",
           () => {
             const updatedBuffs = Object.keys(Game.buffs).filter(
-              (buff) => !ignoredBuffs.includes(buff) || buff === "Click frenzy"
+              (buff) => !ignoredBuffs.includes(buff) || buff === "Click frenzy",
             );
 
             if (updatedBuffs.length > appliedBuffs.length) {
@@ -733,45 +737,67 @@ const gCookie = {
               // Only run the sell-distribution if the triggered buffs include
               // the important 'Click frenzy' buff; otherwise skip.
               if (updatedBuffs.includes("Click frenzy")) {
-                // If player has >100 vigintillion cookies, run the garden
+                // Run the garden experiment and sell-distribution only when the
+                // tab is visible/active; otherwise skip these potentially intrusive actions.
+                const tabVisible =
+                  typeof document !== "undefined" &&
+                  document.visibilityState === "visible";
+
+                // If player has >100 vigintillion cookies, optionally run the garden
                 // harvest/whiskerbloom experiment during the frenzy, then
-                // restore when the frenzy ends (30s).
+                // restore when the frenzy ends (30s). This only runs when $.active.key3 is true.
                 const VIGINTILLION = Math.pow(10, 63);
                 const threshold = 100 * VIGINTILLION;
                 try {
                   if (Game.cookies > threshold) {
-                    try {
-                      harvestAndPlantWhiskerbloom();
-                    } catch (e) {
-                      console.warn("harvestAndPlantWhiskerbloom failed", e);
-                    }
-                    // schedule garden restore after ~30 seconds (buff duration)
-                    setGameTimeout(
-                      "restoreGardenAfterFrenzy",
-                      () => {
+                    if (tabVisible) {
+                      if ($.active.key3) {
                         try {
-                          restoreGardenFromSaved();
+                          harvestAndPlantWhiskerbloom();
                         } catch (e) {
-                          console.warn("restoreGardenFromSaved failed", e);
+                          console.warn("harvestAndPlantWhiskerbloom failed", e);
                         }
-                      },
-                      30000
-                    );
+                        // schedule garden restore after ~30 seconds (buff duration)
+                        setGameTimeout(
+                          "restoreGardenAfterFrenzy",
+                          () => {
+                            try {
+                              restoreGardenFromSaved();
+                            } catch (e) {
+                              console.warn("restoreGardenFromSaved failed", e);
+                            }
+                          },
+                          30000,
+                        );
+                      } else {
+                        console.log(
+                          "gcookie: Whiskerbloom experiment skipped — Key 3 disabled.",
+                        );
+                      }
+                    } else {
+                      console.log(
+                        "gcookie: Click frenzy detected but tab not visible — skipping garden actions and sell distribution.",
+                      );
+                    }
                   }
                 } catch (e) {
                   /* ignore threshold check errors */
                 }
 
-                // Still run the sell-distribution to maximize the buff effect
-                try {
-                  distributeSellForSpell(SPELL_SELL_LIST);
-                } catch (e) {
-                  console.warn("distributeSellForSpell failed to start", e);
+                // Still run the sell-distribution to maximize the buff effect,
+                // but only if the tab is visible (the distribute function itself
+                // also checks Pantheon/Godzamok state).
+                if (tabVisible) {
+                  try {
+                    distributeSellForSpell(SPELL_SELL_LIST);
+                  } catch (e) {
+                    console.warn("distributeSellForSpell failed to start", e);
+                  }
                 }
                 Game.Notify(
                   `Spell triggered Click frenzy!`,
                   `<b>${new Date().toLocaleTimeString()}</b>`,
-                  [22, 11]
+                  [22, 11],
                 );
               } else {
                 // notify the player that another buff was triggered, but it
@@ -779,18 +805,18 @@ const gCookie = {
                 Game.Notify(
                   `Spell triggered another buff (not Click frenzy)`,
                   `<b>${new Date().toLocaleTimeString()}</b><br>${updatedBuffs.join(
-                    ", "
+                    ", ",
                   )}`,
-                  [22, 11]
+                  [22, 11],
                 );
               }
             } else {
               console.log(
-                `🪄 spell backfired or did not do anything important.`
+                `🪄 spell backfired or did not do anything important.`,
               );
             }
           },
-          1000
+          1000,
         );
       }
     }
@@ -805,14 +831,14 @@ const gCookie = {
       () => {
         clickDragonAtIntervals(shouldReset ? 0 : counter);
       },
-      shouldReset ? 5000 : 100
+      shouldReset ? 5000 : 100,
     );
   };
 
   const getGardenCost = () => {
     // how many plants would need reseeding. At most, aprox. 1/3 of the garden.
     const plantsToReseed = Math.floor(
-      Math.min(plotsOccupied, plotsUnlocked * 0.33)
+      Math.min(plotsOccupied, plotsUnlocked * 0.33),
     );
     // the cost of planting new golden clovers.
     const bankToReseedPlants =
@@ -827,7 +853,7 @@ const gCookie = {
 
     const toBuy = Game.ObjectsById.filter(
       (el) =>
-        el.locked === 0 && el.bulkPrice <= Game.cookies - gardenMaintanceCost
+        el.locked === 0 && el.bulkPrice <= Game.cookies - gardenMaintanceCost,
     )
       .sort((a, b) => a.bulkPrice / a.storedCps - b.bulkPrice / b.storedCps)
       .shift();
@@ -846,7 +872,7 @@ const gCookie = {
 
   const simulateBuyBestBuilding = () => {
     const toBuyList = Game.ObjectsById.filter((el) => el.locked === 0).sort(
-      (a, b) => a.bulkPrice / a.storedCps - b.bulkPrice / b.storedCps
+      (a, b) => a.bulkPrice / a.storedCps - b.bulkPrice / b.storedCps,
     );
 
     const [toBuy] = toBuyList;
@@ -863,11 +889,11 @@ const gCookie = {
       (acc, el) => {
         acc.items.push(`%c${el.name}`);
         acc.styles.push(
-          el.bulkPrice < Game.cookies ? "color: lightgreen" : "color: salmon"
+          el.bulkPrice < Game.cookies ? "color: lightgreen" : "color: salmon",
         );
         return acc;
       },
-      { items: [], styles: [] }
+      { items: [], styles: [] },
     );
     if (toLog.items.length) {
       console.log(toLog.items.join(", "), ...toLog.styles);
@@ -881,7 +907,7 @@ const gCookie = {
     setGameTimeout(
       "buyBuildings",
       buyBuildingsPeriodically,
-      toBuy ? 500 : intervalAutoBuyPeriod
+      toBuy ? 500 : intervalAutoBuyPeriod,
     );
   };
 
@@ -895,8 +921,8 @@ const gCookie = {
       console.log(
         `⏲️ autobuy timer changed to: ${Game.sayTime(
           (newValue / 1000) * Game.fps,
-          -1
-        )}`
+          -1,
+        )}`,
       );
       buyBuildingsPeriodically(true);
     }
@@ -908,8 +934,8 @@ const gCookie = {
       console.log(
         `setting timeout for ${Game.sayTime(
           Game.pledgeT || 1,
-          -1
-        )} in the future.`
+          -1,
+        )} in the future.`,
       );
       setGameTimeout(
         "pledge",
@@ -923,11 +949,11 @@ const gCookie = {
                 Game.Upgrades["Elder Pledge"].click();
                 delete $.timeouts.pledge;
               },
-              10000 * i
-            )
+              10000 * i,
+            ),
           );
         },
-        timeToNextClick * 1000
+        timeToNextClick * 1000,
       );
     }
   };
@@ -944,11 +970,115 @@ const gCookie = {
     }
   };
 
-  const harvestRipeLump = function () {
-    const shouldHarvest = Date.now() - Game.lumpT > Game.lumpRipeAge;
+  const harvestMatureLump = function () {
+    const shouldHarvest = Date.now() - Game.lumpT > Game.lumpMatureAge;
     if (shouldHarvest) {
+      const attemptKey = "gcookie.lumpAttempt";
+      const prevLumps = Game.lumps;
+      const origType = Game.lumpCurrentType;
+
+      // mapping of max possible yields per lump type
+      const desiredMaxByType = {
+        0: 1, // common
+        1: 2, // bifurcated
+        2: 7, // golden
+        3: 2, // meaty
+        4: 3, // caramelized
+      };
+
+      // read attempt state from localStorage
+      let attempt = null;
+      try {
+        const raw = localStorage.getItem(attemptKey);
+        attempt = raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        attempt = null;
+      }
+
+      // if no attempt in progress, this is the first try: save game and set attempt
+      if (!attempt || !attempt.attempting) {
+        try {
+          console.log(
+            "gcookie: starting lump-harvest attempt — saving game and marking intent.",
+          );
+          // save game once at start of retry cycle
+          if (typeof Game.WriteSave === "function") Game.WriteSave();
+        } catch (e) {
+          console.warn("gcookie: error saving game before lump harvest", e);
+        }
+
+        attempt = {
+          attempting: true,
+          targetType: origType,
+          desiredMax: desiredMaxByType[origType] || 1,
+          startLumps: prevLumps,
+          tries: 0,
+        };
+        try {
+          localStorage.setItem(attemptKey, JSON.stringify(attempt));
+        } catch (e) {
+          console.warn(
+            "gcookie: could not write lumpAttempt to localStorage",
+            e,
+          );
+        }
+      }
+
+      // perform the harvest
       Game.clickLump();
-      console.log(`Clicked sugar lump.`);
+      console.log(`Clicked sugar lump (type ${origType}).`);
+
+      // evaluate result
+      const gained = Game.lumps - prevLumps;
+      const newType = Game.lumpCurrentType;
+      const desired = attempt.desiredMax || desiredMaxByType[origType] || 1;
+
+      // increment tries counter
+      attempt.tries = (attempt.tries || 0) + 1;
+      try {
+        localStorage.setItem(attemptKey, JSON.stringify(attempt));
+      } catch (e) {}
+
+      const isTypeCritical = origType === 0 || origType === 1; // common or bifurcated
+
+      let success = false;
+      if (gained >= desired) success = true;
+      // for common/bifurcated additionally require the replanted lump to be caramelized(4) or golden(2)
+      if (isTypeCritical && success) {
+        if (!(newType === 4 || newType === 2)) {
+          success = false;
+        }
+      }
+
+      if (success) {
+        console.log(
+          `gcookie: lump harvest succeeded — gained ${gained} (desired ${desired}). Attempts: ${attempt.tries}. Clearing attempt state.`,
+        );
+        try {
+          if (typeof Game.Notify === "function") {
+            Game.Notify(
+              "Lump harvest succeeded",
+              `+${gained} sugar lump(s) (desired ${desired}). Attempts: ${attempt.tries}`,
+              [29, 16],
+            );
+          }
+        } catch (e) {}
+        try {
+          localStorage.removeItem(attemptKey);
+        } catch (e) {}
+      } else {
+        console.log(
+          `gcookie: lump harvest attempt failed — gained ${gained} (desired ${desired}). newType=${newType}. Reloading to retry.`,
+        );
+        // reload to try again; on reload the attempt flag will prevent another initial save
+        setTimeout(() => {
+          try {
+            location.reload();
+          } catch (e) {
+            console.warn("gcookie: reload failed", e);
+          }
+        }, 800);
+      }
     }
   };
 
@@ -1000,23 +1130,14 @@ const gCookie = {
     lumpTypeDiv.textContent = getLumpTypeName(Game.lumpCurrentType);
   };
 
-  const setFarmLoop = () => {
+  const setFarmLoop = (a, b) => {
     setGameInterval(
       "farm",
-      () =>
-        autoHarvestAndPlant(
-          Game.Objects["Farm"].minigame,
-          $.active.key7,
-          $.active.key8
-        ),
-      GCOOKIE_FIXED_INTERVALS.FARM
+      () => autoHarvestAndPlant(Game.Objects["Farm"].minigame, a, b),
+      GCOOKIE_FIXED_INTERVALS.FARM,
     );
     // fire harvest function immediately because of the long interval wait.
-    autoHarvestAndPlant(
-      Game.Objects["Farm"].minigame,
-      $.active.key7,
-      $.active.key8
-    );
+    autoHarvestAndPlant(Game.Objects["Farm"].minigame, a, b);
   };
 
   const toggleActive0Loops = () => {
@@ -1028,32 +1149,33 @@ const gCookie = {
       setGameInterval(
         "golden",
         clickGoldenCookie,
-        GCOOKIE_FIXED_INTERVALS.GOLDEN
+        GCOOKIE_FIXED_INTERVALS.GOLDEN,
       );
       setGameInterval(
         "wrinkler",
         popWrinklers,
-        GCOOKIE_FIXED_INTERVALS.WRINKLER
+        GCOOKIE_FIXED_INTERVALS.WRINKLER,
       );
       setGameInterval(
         "fortune",
         clickFortuneNews,
-        GCOOKIE_FIXED_INTERVALS.FORTUNE
+        GCOOKIE_FIXED_INTERVALS.FORTUNE,
       );
       setGameInterval(
         "magic",
+
         () => castSpell(Game.Objects["Wizard tower"].minigame),
-        GCOOKIE_FIXED_INTERVALS.MAGIC
+        GCOOKIE_FIXED_INTERVALS.MAGIC,
       );
       setGameInterval(
         "buffTimers",
         buffTimers,
-        GCOOKIE_FIXED_INTERVALS.BUFF_TIMERS
+        GCOOKIE_FIXED_INTERVALS.BUFF_TIMERS,
       );
       setGameInterval(
         "lumpType",
         showCurrentLumpType,
-        GCOOKIE_FIXED_INTERVALS.LUMP_TYPE
+        GCOOKIE_FIXED_INTERVALS.LUMP_TYPE,
       );
     } else {
       [
@@ -1087,8 +1209,20 @@ const gCookie = {
 
     if ($.active.key2) {
       console.log(`script 2 started`);
+      // start dragon-click loop (managed via timeouts under key "dragon")
+      try {
+        clickDragonAtIntervals(0);
+      } catch (e) {
+        console.warn("clickDragonAtIntervals failed to start", e);
+      }
     } else {
-      clearTimeout($.timeouts.dragon);
+      // stop any scheduled dragon clicks
+      try {
+        clearTimeout($.timeouts["dragon"]);
+        $.timeouts["dragon"] = null;
+      } catch (e) {
+        /* ignore */
+      }
       console.log(`script 2 stopped`);
     }
   };
@@ -1113,7 +1247,7 @@ const gCookie = {
       setGameInterval(
         "refreshFools",
         refreshFools,
-        GCOOKIE_FIXED_INTERVALS.REFRESH_FOOLS
+        GCOOKIE_FIXED_INTERVALS.REFRESH_FOOLS,
       );
     } else {
       clearInterval($.intervals.refreshFools);
@@ -1141,7 +1275,7 @@ const gCookie = {
 
     if ($.active.key6) {
       console.log(`script 6 started`);
-      setGameInterval("lump", harvestRipeLump, GCOOKIE_FIXED_INTERVALS.LUMP);
+      setGameInterval("lump", harvestMatureLump, GCOOKIE_FIXED_INTERVALS.LUMP);
     } else {
       clearInterval($.intervals.lump);
       console.log(`script 6 stopped`);
@@ -1151,14 +1285,14 @@ const gCookie = {
   const toggleActive7Loops = () => {
     $.active.key7 = !$.active.key7;
     dispatchUpdate();
-    setFarmLoop();
+    setFarmLoop($.active.key7);
     console.log($.active.key7 ? `script 7 started` : `script 7 stopped`);
   };
 
   const toggleActive8Loops = () => {
     $.active.key8 = !$.active.key8;
     dispatchUpdate();
-    setFarmLoop();
+    setFarmLoop($.active.key7, $.active.key8);
     console.log($.active.key8 ? `script 8 started` : `script 8 stopped`);
   };
 
@@ -1171,7 +1305,7 @@ const gCookie = {
       setGameInterval(
         "clicker",
         Game.ClickCookie,
-        GCOOKIE_FIXED_INTERVALS.CLICK_COOKIE
+        GCOOKIE_FIXED_INTERVALS.CLICK_COOKIE,
       );
     } else {
       clearInterval($.intervals.clicker);
@@ -1294,9 +1428,9 @@ const gCookie = {
     const rawCps = Beautify(Game.cookiesPsRaw);
     const rawClickCps = Beautify(Game.mouseCps() / 7);
     const oneLiner = `${Beautify(Game.cookiesPsRaw)} - ${Beautify(
-      Game.mouseCps() / 7
+      Game.mouseCps() / 7,
     )} (${Beautify(Game.cookiesPs)} - ${Beautify(
-      Game.mouseCps()
+      Game.mouseCps(),
     )}) - ${Beautify(Game.BuildingsOwned)} buildings.`;
     const buildings = (html) =>
       Object.entries(Game.cookiesPsByType)
@@ -1305,7 +1439,7 @@ const gCookie = {
         .reduce(
           (str, a) =>
             (str += `${a[0]}: ${Beautify(a[1])}${html ? `<br/>` : `\n`}`),
-          ``
+          ``,
         );
 
     const htmlStr = `<div><br/><br/>Frenzy time remaining: <b>${frenzyTime}</b></div>
@@ -1457,20 +1591,18 @@ const gCookie = {
       <li>Auto: Buy upgrades periodically</li>
     </ul>
   </div>
-  <!--
   <div>
     <b>Key 2:</b>
     <ul style="padding: 3px">
-      <li></li>
+      <li>Toggle: Dragon-click loop (start/stop automatic "pet the dragon").</li>
     </ul>
   </div>
   <div>
     <b>Key 3:</b>
     <ul style="padding: 3px">
-      <li></li>
+      <li>Toggle: Replace the garden with Whiskerbloom and restore it after the "Click frenzy" ends.</li>
     </ul>
   </div>
-  -->
   <div>
     <b>Key 4:</b>
     <ul style="padding: 3px">
@@ -1517,12 +1649,14 @@ const gCookie = {
   </div>
   -->
   <h3 class="gtooltip-title">Numpad</h3>
+  <!--
   <div>
     <b>Numpad 2:</b>
     <ul style="padding: 3px">
-      <li>Auto: Pet the Dragon</li>
+      <li></li>
     </ul>
   </div>
+  -->
   <div>
     <b>Numpad 3:</b>
     <ul style="padding: 3px">
@@ -1555,7 +1689,7 @@ const gCookie = {
     </ul>
   </div>
 </div>`,
-      "this"
+      "this",
     );
   };
 
@@ -1710,13 +1844,13 @@ const gCookie = {
           Game.ClickProduct(building.id, true);
         }
         console.log(
-          `Attempted to sell ${sellAmount} Wizard towers via Game.ClickProduct fallback.`
+          `Attempted to sell ${sellAmount} Wizard towers via Game.ClickProduct fallback.`,
         );
         Game.Notify(
           "Sold Wizard towers",
           `Attempted to sell ${sellAmount}`,
           null,
-          6
+          6,
         );
         return;
       }
@@ -1731,13 +1865,13 @@ const gCookie = {
         if (sellBtn) {
           for (let i = 0; i < sellAmount; i++) sellBtn.click();
           console.log(
-            `Attempted to sell ${sellAmount} Wizard towers via DOM fallback.`
+            `Attempted to sell ${sellAmount} Wizard towers via DOM fallback.`,
           );
           Game.Notify(
             "Sold Wizard towers",
             `Attempted to sell ${sellAmount}`,
             null,
-            6
+            6,
           );
           return;
         }
@@ -1757,10 +1891,49 @@ const gCookie = {
   const distributeSellForSpell = (
     buildingNames,
     totalDuration = 30,
-    primaryWindow = 20,
-    maxBatches = 40
+    primaryWindow = 21,
+    maxBatches = 40,
   ) => {
     if (!Array.isArray(buildingNames) || buildingNames.length === 0) return;
+
+    // Safety: only allow this temporary-sell logic to run if the Pantheon
+    // minigame is available and Godzamok ("ruin") is slotted/active.
+    try {
+      const P = Game.Objects["Temple"]?.minigame;
+      if (!P || typeof Game.hasGod !== "function" || !Game.hasGod("ruin")) {
+        console.log(
+          "gcookie: distributeSellForSpell skipped — Godzamok not active in Pantheon.",
+        );
+        return;
+      }
+    } catch (e) {
+      // If any error occurs while checking pantheon state, skip for safety.
+      console.log(
+        "gcookie: distributeSellForSpell skipped — error checking Pantheon state.",
+        e,
+      );
+      return;
+    }
+
+    // Work on a local copy so we don't mutate the original `buildingNames`
+    // array the caller passed (calls should be independent).
+    let sellList = buildingNames;
+    try {
+      if (Game.goldenCookieBuildingBuffs) {
+        sellList = buildingNames.filter((name) => {
+          const buffs = Game.goldenCookieBuildingBuffs[name];
+          if (!buffs || !Array.isArray(buffs)) return true;
+          for (let i = 0; i < buffs.length; i++) {
+            if (Game.buffs[buffs[i]]) return false;
+          }
+          return true;
+        });
+      }
+    } catch (e) {
+      // ignore filtering errors
+    }
+
+    if (!Array.isArray(sellList) || sellList.length === 0) return;
 
     const runId = Date.now();
     const totalMs = totalDuration * 1000;
@@ -1773,7 +1946,7 @@ const gCookie = {
     let totalSellProceeds = 0;
     const sellProceedsPerType = {};
 
-    buildingNames.forEach((name) => {
+    sellList.forEach((name) => {
       const b = Game.Objects[name];
       if (!b) return;
 
@@ -1828,7 +2001,7 @@ const gCookie = {
               console.warn("Error selling during spell distribution", name, e);
             }
           },
-          whenMs
+          whenMs,
         );
       }
     });
@@ -1837,7 +2010,7 @@ const gCookie = {
     try {
       const totalPlanned = Object.values(plannedCounts).reduce(
         (a, b) => a + b,
-        0
+        0,
       );
       if (totalPlanned > 0) {
         Game.Notify(
@@ -1845,7 +2018,7 @@ const gCookie = {
           `Scheduled ${totalPlanned} buildings to be sold across ${
             Object.keys(plannedCounts).length
           } types.`,
-          [22, 11]
+          [22, 11],
         );
       }
     } catch (e) {
@@ -1919,24 +2092,51 @@ const gCookie = {
           }
           const totalSold = Object.values(soldCounts).reduce(
             (a, b) => a + b,
-            0
+            0,
           );
           const typeCount = Object.keys(perTypeRebought).length;
+
+          // compute how many buildings remain missing compared to what was sold
+          let totalMissing = 0;
+          const perTypeMissing = {};
+          for (const name in soldCounts) {
+            const sold = soldCounts[name] || 0;
+            const rebought = perTypeRebought[name] || 0;
+            const missing = Math.max(0, sold - rebought);
+            if (missing > 0) {
+              perTypeMissing[name] = missing;
+              totalMissing += missing;
+            }
+          }
+
+          const notifyParts = [];
+          notifyParts.push(`Re-bought ${totalRebought} (${typeCount} types)`);
+          if (totalMissing > 0) {
+            notifyParts.push(`Still ${totalMissing} fewer than sold`);
+          } else {
+            notifyParts.push(`All sold buildings restored`);
+          }
+
           Game.Notify(
             "Spell sell window ended",
-            `Buildings restored — ${totalSold} sold earlier. Re-bought ${totalRebought} (${typeCount} types; 20 less per type).`,
-            [22, 11]
+            `Buildings restored — ${totalSold} sold earlier. ${notifyParts.join(
+              ". ",
+            )}.`,
+            [22, 11],
           );
+
           // also log detailed per-type info to console
           console.log("Spell buyback details:", {
             soldCounts,
             perTypeRebought,
+            perTypeMissing,
+            totalMissing,
           });
         } catch (e) {
           console.warn("Error during spell buyback", e);
         }
       },
-      totalMs + 1000
+      totalMs + 1000,
     );
   };
 
@@ -1944,10 +2144,10 @@ const gCookie = {
   // Edit this list to fit your strategy.
   const SPELL_SELL_LIST = [
     "Shipment",
+    "Farm",
     "Alchemy lab",
     "Factory",
     "Antimatter condenser",
-    "Portal",
     "Prism",
     "Chancemaker",
     "Idleverse",
@@ -1980,7 +2180,7 @@ const gCookie = {
       Game.Notify(
         "Garden error",
         "Could not find Whiskerbloom plant in garden data.",
-        [6, 0]
+        [6, 0],
       );
       return;
     }
@@ -1991,14 +2191,18 @@ const gCookie = {
       Game.Notify(
         "Garden error",
         "Whiskerbloom seed not unlocked — leaving garden unchanged.",
-        [6, 0]
+        [6, 0],
       );
       return;
     }
 
     // save current layout as a 6x6 array of plant ids (0 = empty)
+    // saved[y][x] === 0 => empty tile originally
+    // saved[y][x] === { r, n, cleared } => had a plant; cleared==true when we harvested it
     const saved = Array.from({ length: 6 }, () => Array(6).fill(0));
     let savedCount = 0;
+    // prefer ID-based detection for Thumbcorn (more robust than name matching)
+    const thumbId = findPlantIdByNameFragment(M, "thumbcorn");
     for (let y = 0; y < 6; y++) {
       for (let x = 0; x < 6; x++) {
         if (!M.isTileUnlocked(x, y)) continue;
@@ -2006,22 +2210,40 @@ const gCookie = {
         if (tile[0] > 0) {
           // store both the raw plot value (tile[0]) and the plant name to help restore
           const me = M.plantsById[tile[0] - 1];
-          saved[y][x] = { r: tile[0], n: me ? me.name : null };
+          // By default we will harvest/clear the tile unless it's a mature Thumbcorn
+          let cleared = true;
+          if (
+            thumbId !== null &&
+            me &&
+            typeof me.id !== "undefined" &&
+            me.id === thumbId
+          ) {
+            // tile[1] is the age; me.mature is the maturity threshold
+            if (tile[1] >= (me.mature ?? Infinity)) {
+              // Mature Thumbcorn: do not harvest or replace
+              cleared = false;
+            }
+          }
+
+          saved[y][x] = { r: tile[0], n: me ? me.name : null, cleared };
           savedCount++;
+          // harvest only if cleared
+          if (cleared) M.harvest(x, y);
         } else saved[y][x] = 0;
-        // harvest whatever is there (to clear the plot)
-        if (tile[0] > 0) M.harvest(x, y);
       }
     }
 
     // store saved layout on the addon state
     $.savedGardenLayout = saved;
 
-    // plant Whiskerbloom on every unlocked tile
+    // plant Whiskerbloom on every unlocked tile except those we deliberately left (e.g. mature Thumbcorns)
     let planted = 0;
     for (let y = 0; y < 6; y++) {
       for (let x = 0; x < 6; x++) {
         if (!M.isTileUnlocked(x, y)) continue;
+        // if this tile originally had a plant that we did NOT clear (cleared===false), skip it
+        const s = saved[y][x];
+        if (s && typeof s === "object" && s.cleared === false) continue;
         try {
           M.useTool(whiskerId, x, y);
           planted++;
@@ -2034,7 +2256,7 @@ const gCookie = {
     Game.Notify(
       "Garden replaced",
       `Saved ${savedCount} plants; planted ${planted} Whiskerbloom(s).`,
-      [20, 3]
+      [20, 3],
     );
     console.log("harvestAndPlantWhiskerbloom:", { savedCount, planted });
   };
@@ -2051,7 +2273,7 @@ const gCookie = {
       Game.Notify(
         "Garden restore",
         "No saved garden layout to restore.",
-        [6, 0]
+        [6, 0],
       );
       return;
     }
@@ -2136,7 +2358,7 @@ const gCookie = {
     Game.Notify(
       "Garden restored",
       `Harvested ${harvestedWhisker} whiskerbloom(s); replanted ${replantedTotal} tiles.`,
-      [20, 3]
+      [20, 3],
     );
     console.log("restoreGardenFromSaved:", {
       harvestedWhisker,
@@ -2229,13 +2451,11 @@ const gCookie = {
           }
           break;
         case "Numpad0":
-          harvestAndPlantWhiskerbloom();
-          break;
+          return;
         case "Numpad1":
-          restoreGardenFromSaved();
-          break;
+          return;
         case "Numpad2":
-          clickDragonAtIntervals();
+          return;
           break;
         case "Numpad3":
           popAllWrinklers();
@@ -2264,7 +2484,7 @@ const gCookie = {
           break;
       }
     },
-    false
+    false,
   );
 
   document.addEventListener("click", (e) => {
@@ -2280,8 +2500,16 @@ const gCookie = {
         updateUI();
         saveCurrentState();
       },
-      0
+      0,
     );
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      console.log("⚠️⚠️⚠️La pestaña ahora está en background⚠️⚠️⚠️");
+    } else {
+      console.log("✅✅✅La pestaña ahora está visible✅✅✅");
+    }
   });
 
   // first run
@@ -2311,6 +2539,11 @@ const gCookie = {
   toggleActiveShift7Loops();
   toggleActiveShift8Loops();
   toggleActiveShift9Loops();
+
+  if ($.active.key6) {
+    // it's down here to allow all other initializations first before potentially reloading the game
+    harvestMatureLump();
+  }
 
   // award shadow achievement for using addons.
   Game.Win("Third-party");
@@ -2359,7 +2592,7 @@ var stockerGreeting = "click clack you are now in debt";
 
 if (typeof CCSE == undefined)
   Game.LoadMod(
-    "https://klattmose.github.io/CookieClicker/SteamMods/CCSE/main.js"
+    "https://klattmose.github.io/CookieClicker/SteamMods/CCSE/main.js",
   );
 
 if (CookiStocker === undefined) var CookiStocker = {};
@@ -2457,8 +2690,8 @@ function stockerTimeBeautifier(duration) {
       (minutes && seconds
         ? ", "
         : (minutes ? !seconds : seconds)
-        ? " and "
-        : "")
+          ? " and "
+          : "")
     : "";
   var strDays = days
     ? days +
@@ -2467,8 +2700,8 @@ function stockerTimeBeautifier(duration) {
       ((hours && minutes) || (hours && seconds) || (minutes && seconds)
         ? ", "
         : ((hours ? !minutes : minutes) ? !seconds : seconds)
-        ? " and "
-        : "")
+          ? " and "
+          : "")
     : "";
   var strTime = strDays + strHours + strMinutes;
   if (stockerForceLoopUpdates && seconds) strTime += strSeconds;
@@ -2486,7 +2719,7 @@ setTimeout(function waitForGame() {
       startStocking: function () {
         if (!Game.Objects["Bank"].minigame) {
           console.log(
-            "=====$$$=== Stock Market minigame has not initialised yet! Will try again in 500 ms."
+            "=====$$$=== Stock Market minigame has not initialised yet! Will try again in 500 ms.",
           );
           setTimeout(() => {
             this.startStocking();
@@ -2504,16 +2737,16 @@ setTimeout(function waitForGame() {
 
         // #intro:start
         console.log(
-          "=====$$$=== CookiStocker logic loop initialised at " + new Date()
+          "=====$$$=== CookiStocker logic loop initialised at " + new Date(),
         );
         console.log("=====$$$=== With main options as follows:");
         console.log(
           "=====$$$=== Logic loop frequency: " +
-            stockerTimeBeautifier(stockerLoopFrequency)
+            stockerTimeBeautifier(stockerLoopFrequency),
         );
         console.log(
           "=====$$$=== Report frequency: " +
-            stockerTimeBeautifier(stockerActivityReportFrequency)
+            stockerTimeBeautifier(stockerActivityReportFrequency),
         );
         console.log("=====$$$=== Cheating: " + stockerForceLoopUpdates);
         Game.Notify("CookiStocker is ready", stockerGreeting, [1, 33], false);
@@ -2545,7 +2778,7 @@ setTimeout(function waitForGame() {
               modeDecoder[market[i].mode] +
               " at $" +
               market[i].val +
-              (market[i].stock ? " (own)" : "")
+              (market[i].stock ? " (own)" : ""),
           );
         }
         if (stockerForceLoopUpdates) {
@@ -2585,13 +2818,13 @@ setTimeout(function waitForGame() {
             let deltaPrice = largeDelta;
             let stockName = stockList.goods[i].name.replace(
               "%1",
-              Game.bakeryName
+              Game.bakeryName,
             );
 
             // Our ceilingPrice is the maximum of the bank ceiling and the (deprecated but still useful) stock ceiling
             let ceilingPrice = Math.max(
               10 * (i + 1) + Game.Objects["Bank"].level + 49,
-              97 + Game.Objects["Bank"].level * 3
+              97 + Game.Objects["Bank"].level * 3,
             );
 
             if (Game.ObjectsById[i + 2].amount == 0) {
@@ -2635,7 +2868,7 @@ setTimeout(function waitForGame() {
                 console.log(
                   `${stockName} mode is unchanged at ${lmd} [${
                     modeDecoder[lmd]
-                  }] at $${Beautify(currentPrice, 2)}`
+                  }] at $${Beautify(currentPrice, 2)}`,
                 );
               else
                 console.log(
@@ -2643,8 +2876,8 @@ setTimeout(function waitForGame() {
                     modeDecoder[lmd]
                   }] and new mode is ${md} [${modeDecoder[md]}] at $${Beautify(
                     currentPrice,
-                    2
-                  )}`
+                    2,
+                  )}`,
                 );
             }
             stockList.goods[i].lastDur = market[i].dur;
@@ -2693,12 +2926,12 @@ setTimeout(function waitForGame() {
                       units > 1 ? "s" : ""
                     }. The stock ${mode} at $${Beautify(
                       market[i].prev,
-                      2
+                      2,
                     )} per unit (your buying price) and is in ${
                       modeDecoder[md]
                     } mode now.`,
                     goodIcons[i],
-                    stockerFastNotifications
+                    stockerFastNotifications,
                   );
                 else
                   Game.Notify(
@@ -2711,17 +2944,17 @@ setTimeout(function waitForGame() {
                       units > 1 ? "s" : ""
                     }. The price has dropped below $2 per unit, and your buying price is $${Beautify(
                       market[i].prev,
-                      2
+                      2,
                     )}.`,
                     goodIcons[i],
-                    stockerFastNotifications
+                    stockerFastNotifications,
                   );
               if (stockerConsoleAnnouncements)
                 console.log(
                   "=====$$$=== Buying " +
                     stockName +
                     " at $" +
-                    Beautify(market[i].prev, 2)
+                    Beautify(market[i].prev, 2),
                 );
             } else if (
               // sell conditions
@@ -2742,7 +2975,7 @@ setTimeout(function waitForGame() {
               if (
                 !Game.Objects["Bank"].minigame.sellGood(
                   i,
-                  stockList.goods[i].stock
+                  stockList.goods[i].stock,
                 )
               ) {
                 stockList.goods[i].lastMode = stockList.goods[i].mode; // update last mode
@@ -2785,34 +3018,34 @@ setTimeout(function waitForGame() {
                     stockList.goods[i].stock > 1 ? "s" : ""
                   } at a price of $${Beautify(
                     market[i].val,
-                    2
+                    2,
                   )} per unit for a ${strProfit} of $${Beautify(
                     profit,
-                    2
+                    2,
                   )} and total revenue of $${Beautify(
                     market[i].val * stockList.goods[i].stock,
-                    2
+                    2,
                   )}, which is added to the total market profits. The stock ${mode} is in ${
                     modeDecoder[md]
                   } mode now. Bought at a price of $${Beautify(
                     market[i].prev,
-                    2
+                    2,
                   )} per unit.`,
                   goodIcons[i],
-                  stockerFastNotifications
+                  stockerFastNotifications,
                 );
               if (stockerConsoleAnnouncements)
                 console.log(
                   `=====$$$=== Selling ${stockName} at $${Beautify(
                     market[i].val,
-                    2
+                    2,
                   )} for a ${strProfit}of $${Beautify(
                     profit,
-                    2
+                    2,
                   )} and total revenue of $${Beautify(
                     market[i].val * stockList.goods[i].stock,
-                    2
-                  )}. Last bought at $${Beautify(market[i].prev, 2)}.`
+                    2,
+                  )}. Last bought at $${Beautify(market[i].prev, 2)}.`,
                 );
             }
 
@@ -2915,10 +3148,10 @@ setTimeout(function waitForGame() {
                     minute: "2-digit",
                   })}`,
                   `This session has been running for ${stockerTimeBeautifier(
-                    stockerUptime
+                    stockerUptime,
                   )}, but no good investment opportunities were detected! Luck is not on our side, yet.`,
                   [1, 33],
-                  stockerFastNotifications
+                  stockerFastNotifications,
                 );
               } else {
                 Game.Notify(
@@ -2928,22 +3161,22 @@ setTimeout(function waitForGame() {
                     minute: "2-digit",
                   })}`,
                   `This session has been running for ${stockerTimeBeautifier(
-                    stockerUptime
+                    stockerUptime,
                   )} and has made $${Beautify(
                     stockList.sessionNetProfits,
-                    0
+                    0,
                   )} in net profits and $${Beautify(
                     stockList.sessionProfits,
-                    0
+                    0,
                   )} in revenue (displayed profits) in ${Beautify(
                     stockList.sessionPurchases,
-                    0
+                    0,
                   )} purchases and ${Beautify(
                     stockList.sessionSales,
-                    0
+                    0,
                   )} sales.`,
                   [1, 33],
-                  stockerFastNotifications
+                  stockerFastNotifications,
                 );
               }
             if (stockerConsoleAnnouncements) {
@@ -2972,30 +3205,30 @@ setTimeout(function waitForGame() {
               }
               console.log(
                 `Running for ${stockerTimeBeautifier(
-                  stockerUptime
+                  stockerUptime,
                 )} and made $${Beautify(
                   stockList.sessionNetProfits,
-                  0
+                  0,
                 )}\n  in net profits and $${Beautify(
                   stockList.sessionProfits,
-                  0
+                  0,
                 )} in revenue (displayed profits)\n  in ${Beautify(
                   stockList.sessionPurchases,
-                  0
+                  0,
                 )} purchases and ${Beautify(
                   stockList.sessionSales,
-                  0
+                  0,
                 )} sales.\nTotal number of stocks held: ${totalStocks}.  Total shares: ${Beautify(
                   totalShares,
-                  0
+                  0,
                 )}.\nTotal value: $${Beautify(
-                  totalValue
+                  totalValue,
                 )}.  Unrealized profits: $${Beautify(
                   unrealizedProfits,
-                  2
+                  2,
                 )}.\nTotal gross profits:  $${Beautify(
                   stockList.sessionGrossProfits,
-                  0
+                  0,
                 )}.  Profitable stocks:  ${
                   stockList.sessionProfitableStocks
                 }.\nProfitable trades:  ${
@@ -3005,12 +3238,12 @@ setTimeout(function waitForGame() {
                     ? Beautify(
                         stockList.sessionGrossProfits /
                           stockList.sessionProfitableTrades,
-                        2
+                        2,
                       )
                     : 0
                 }.\nTotal gross losses:  $${Beautify(
                   stockList.sessionGrossLosses,
-                  0
+                  0,
                 )}.  Unprofitable stocks:  ${
                   stockList.sessionUnprofitableStocks
                 }.\nUnprofitable trades:  ${
@@ -3020,10 +3253,10 @@ setTimeout(function waitForGame() {
                     ? Beautify(
                         stockList.sessionGrossLosses /
                           stockList.sessionUnprofitableTrades,
-                        2
+                        2,
                       )
                     : 0
-                }.`
+                }.`,
               );
 
               // Stats for individual modes
@@ -3054,8 +3287,8 @@ setTimeout(function waitForGame() {
 
                   console.log(
                     `Profits[${j}][${k}] = $${Beautify(profit, 2).padEnd(
-                      14
-                    )} ${strProfit}${strDeltaModeProfits}${strTrades}`
+                      14,
+                    )} ${strProfit}${strDeltaModeProfits}${strTrades}`,
                   );
                   subtotalProfits += profit;
                   deltaSubtotalProfits += lastProfit;
@@ -3097,8 +3330,8 @@ setTimeout(function waitForGame() {
                 console.log(
                   `Subtotal[${j}]`.padEnd(14) +
                     `= $${Beautify(subtotalProfits, 2).padEnd(
-                      14
-                    )} ${strProfit}${strDeltaModeProfits}${strTrades}`
+                      14,
+                    )} ${strProfit}${strDeltaModeProfits}${strTrades}`,
                 );
                 subtotalProfits = 0;
                 deltaSubtotalProfits = 0;
@@ -3119,7 +3352,7 @@ setTimeout(function waitForGame() {
               }
               console.log(
                 `Total profits = $${Beautify(totalProfits, 2).padEnd(
-                  22
+                  22,
                 )}${(deltaTotalProfits
                   ? "$" + Beautify(deltaTotalProfits, 2)
                   : ""
@@ -3132,25 +3365,25 @@ setTimeout(function waitForGame() {
                         (totalTrades > 1 ? "s" : " ")
                       ).padStart(13)
                     : ""
-                }`
+                }`,
               );
               console.log(
                 `Profit per hour = $${Beautify(
                   hourlyProfits,
-                  2
-                )}; profit per day = $${Beautify(dailyProfits, 2)}`
+                  2,
+                )}; profit per day = $${Beautify(dailyProfits, 2)}`,
               );
               console.log(
                 `That's ${Beautify(
                   hourlyProfits * Game.cookiesPsRawHighest,
-                  2
+                  2,
                 )} cookies and ${Beautify(
                   dailyProfits * Game.cookiesPsRawHighest,
-                  2
+                  2,
                 )} cookies, respectively. It's also ${Beautify(
                   hourlyProfits / 3600,
-                  0
-                )} times your highest raw cookie production rate.`
+                  0,
+                )} times your highest raw cookie production rate.`,
               );
               if (stockerForceLoopUpdates) {
                 console.log("In unadjusted, true numbers:");
@@ -3159,24 +3392,24 @@ setTimeout(function waitForGame() {
                 console.log(
                   `Profit per hour = $${Beautify(
                     hourlyProfits,
-                    2
-                  )}; profit per diem = $${Beautify(dailyProfits, 2)}`
+                    2,
+                  )}; profit per diem = $${Beautify(dailyProfits, 2)}`,
                 );
                 console.log(
                   `That's ${Beautify(
                     hourlyProfits * Game.cookiesPsRawHighest,
-                    2
+                    2,
                   )} cookies and ${Beautify(
                     dailyProfits * Game.cookiesPsRawHighest,
-                    2
+                    2,
                   )} cookies, respectively. It's also ${Beautify(
                     hourlyProfits / 3600,
-                    0
-                  )} times your highest raw cookie production rate.`
+                    0,
+                  )} times your highest raw cookie production rate.`,
                 );
               }
               console.log(
-                "------------------------------------------------------------------"
+                "------------------------------------------------------------------",
               );
             }
           }, stockerActivityReportFrequency);
